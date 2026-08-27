@@ -6,7 +6,8 @@ const NAV = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/products", label: "San pham" },
   { to: "/categories", label: "Danh muc" },
-  { to: "/orders", label: "Don hang" }
+  { to: "/orders", label: "Don hang" },
+  { to: "/users", label: "Tai khoan" }
 ];
 
 export default function AdminShell() {
