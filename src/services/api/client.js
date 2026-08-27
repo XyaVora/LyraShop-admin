@@ -1,12 +1,13 @@
 import axios from "axios";
 import { getApiBaseUrl } from "./config.js";
-import { buildCredentialedRequest, requestPath } from "./httpConfig.js";
+import { API_TIMEOUT_MS, buildCredentialedRequest, requestPath } from "./httpConfig.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { readCsrfHeader } from "../../utils/session.js";
 
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
-  withCredentials: true
+  withCredentials: true,
+  timeout: API_TIMEOUT_MS
 });
 
 api.interceptors.request.use((config) => {

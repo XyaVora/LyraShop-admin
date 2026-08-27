@@ -1,5 +1,7 @@
 import { CSRF_HEADER_NAME } from "../../utils/session.js";
 
+export const API_TIMEOUT_MS = 5000;
+
 const CSRF_PATHS = new Set([
   "/api/v1/auth/refresh",
   "/api/v1/auth/logout"
