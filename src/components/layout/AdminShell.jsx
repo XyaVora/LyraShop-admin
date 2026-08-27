@@ -3,7 +3,8 @@ import { logout } from "../../services/api/authApi.js";
 import { useAuthStore } from "../../store/authStore.js";
 
 const NAV = [
-  { to: "/", label: "Dashboard", end: true }
+  { to: "/", label: "Dashboard", end: true },
+  { to: "/products", label: "San pham" }
 ];
 
 export default function AdminShell() {
