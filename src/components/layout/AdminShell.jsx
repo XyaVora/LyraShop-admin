@@ -5,7 +5,8 @@ import { useAuthStore } from "../../store/authStore.js";
 const NAV = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/products", label: "San pham" },
-  { to: "/categories", label: "Danh muc" }
+  { to: "/categories", label: "Danh muc" },
+  { to: "/orders", label: "Don hang" }
 ];
 
 export default function AdminShell() {
