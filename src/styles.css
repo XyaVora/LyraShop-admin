@@ -1,0 +1,48 @@
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+}
+
+.admin-sidebar {
+  background: #111827;
+  min-height: 100vh;
+}
+
+.admin-sidebar .nav-link.active {
+  background: #1f2937;
+  color: #fff;
+}
+
+.admin-header {
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.login-page {
+  background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+}
+
+.login-card {
+  width: min(420px, calc(100% - 2rem));
+}
+
+@media (max-width: 768px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    min-height: auto;
+  }
+}
