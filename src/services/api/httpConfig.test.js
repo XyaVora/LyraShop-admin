@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { CSRF_HEADER_NAME } from "../../utils/session.js";
-import { buildCredentialedRequest } from "./httpConfig.js";
+import { api } from "./client.js";
+import { API_TIMEOUT_MS, buildCredentialedRequest } from "./httpConfig.js";
 
 describe("credentialed request builder", () => {
+  it("uses a finite timeout so session restore cannot hang forever", () => {
+    expect(API_TIMEOUT_MS).toBeGreaterThan(0);
+    expect(API_TIMEOUT_MS).toBeLessThanOrEqual(8000);
+    expect(api.defaults.timeout).toBe(API_TIMEOUT_MS);
+  });
+
   it("attaches credentials and CSRF on refresh", () => {
     const request = buildCredentialedRequest({
       method: "POST",
