@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AdminShell from "../../components/layout/AdminShell.jsx";
 import LoginPage from "../../features/auth/LoginPage.jsx";
+import DashboardPage from "../../features/dashboard/DashboardPage.jsx";
 import { useAuthStore } from "../../store/authStore.js";
 
 function RequireAdmin({ children }) {
@@ -10,15 +11,6 @@ function RequireAdmin({ children }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
   return children;
-}
-
-function DashboardPlaceholder() {
-  return (
-    <div>
-      <h1 className="h4">Dashboard</h1>
-      <p className="text-secondary">Thong ke se duoc noi o pull request tiep theo.</p>
-    </div>
-  );
 }
 
 export default function AppRouter() {
@@ -33,7 +25,7 @@ export default function AppRouter() {
           </RequireAdmin>
         )}
       >
-        <Route index element={<DashboardPlaceholder />} />
+        <Route index element={<DashboardPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
