@@ -4,9 +4,13 @@ import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
-import LoadingState from "../../components/common/LoadingState.jsx";
+import PageHeader from "../../components/common/PageHeader.jsx";
+import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
+import StatusBadge from "../../components/common/StatusBadge.jsx";
 import { formatMoney } from "../../utils/format.js";
 import { parseApiError } from "../../services/api/errors.js";
+import { activeClass } from "../../utils/status.js";
+import { useToastStore } from "../../store/toastStore.js";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -14,6 +18,7 @@ export default function ProductDetailPage() {
   const [sessionVariants, setSessionVariants] = useState([]);
   const [sessionImages, setSessionImages] = useState([]);
   const [problem, setProblem] = useState(null);
+  const pushToast = useToastStore((state) => state.push);
   const products = useQuery({
     queryKey: ["admin", "products"],
     queryFn: adminApi.listProducts
@@ -35,6 +40,7 @@ export default function ProductDetailPage() {
     onSuccess: (created) => {
       setSessionVariants((current) => [created, ...current]);
       variantForm.reset();
+      pushToast("Đã tạo biến thể");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
@@ -48,6 +54,7 @@ export default function ProductDetailPage() {
     onSuccess: (created) => {
       setSessionImages((current) => [created, ...current]);
       imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
+      pushToast("Đã thêm ảnh");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
@@ -66,7 +73,7 @@ export default function ProductDetailPage() {
   });
 
   if (products.isLoading) {
-    return <LoadingState />;
+    return <SkeletonBlock rows={8} />;
   }
   if (products.isError) {
     return <ErrorAlert error={products.error} />;
@@ -77,7 +84,7 @@ export default function ProductDetailPage() {
         problem={{
           status: 404,
           code: "PRODUCT_NOT_FOUND",
-          message: "Khong tim thay san pham trong danh sach admin. Backend khong co GET theo id.",
+          message: "Không tìm thấy sản phẩm trong danh sách quản trị. Backend chưa có GET theo id.",
           fieldErrors: {}
         }}
       />
@@ -86,18 +93,31 @@ export default function ProductDetailPage() {
 
   return (
     <div>
-      <h1 className="h4 mb-2">{product.name}</h1>
-      <p className="text-secondary">{product.slug} · {formatMoney(product.basePrice)} · {product.active ? "Hien" : "An"}</p>
+      <PageHeader
+        title={product.name}
+        crumbs={[
+          { label: "Tổng quan", to: "/" },
+          { label: "Sản phẩm", to: "/products" },
+          { label: product.name }
+        ]}
+        description={`${product.slug} · ${formatMoney(product.basePrice)}`}
+        actions={(
+          <StatusBadge
+            className={activeClass(product.active)}
+            label={product.active ? "Hiện" : "Ẩn"}
+          />
+        )}
+      />
       <ErrorAlert problem={problem} />
 
       <div className="row g-4">
         <div className="col-lg-6">
           <div className="card">
             <div className="card-body">
-              <h2 className="h6">Tao bien the / SKU / ton kho</h2>
+              <h2 className="h6">Tạo biến thể / SKU / tồn kho</h2>
               <p className="small text-secondary">
-                Backend khong tra danh sach bien the cho admin. Form nay dung POST tao moi;
-                ton kho chi sua duoc khi response tra ve version.
+                Backend không trả danh sách biến thể cho quản trị. Form này dùng POST tạo mới;
+                tồn kho chỉ sửa được khi phản hồi trả về version.
               </p>
               <form
                 onSubmit={variantForm.handleSubmit((values) => {
@@ -113,17 +133,17 @@ export default function ProductDetailPage() {
                     <input className="form-control" placeholder="Size" {...variantForm.register("size", { required: true })} />
                   </div>
                   <div className="col-3">
-                    <input className="form-control" placeholder="Mau" {...variantForm.register("color", { required: true })} />
+                    <input className="form-control" placeholder="Màu" {...variantForm.register("color", { required: true })} />
                   </div>
                   <div className="col-6">
-                    <input className="form-control" type="number" step="0.01" placeholder="Gia" {...variantForm.register("price", { valueAsNumber: true })} />
+                    <input className="form-control" type="number" step="0.01" placeholder="Giá" {...variantForm.register("price", { valueAsNumber: true })} />
                   </div>
                   <div className="col-6">
-                    <input className="form-control" type="number" min="0" placeholder="Ton kho" {...variantForm.register("stock", { valueAsNumber: true })} />
+                    <input className="form-control" type="number" min="0" placeholder="Tồn kho" {...variantForm.register("stock", { valueAsNumber: true })} />
                   </div>
                 </div>
-                <button className="btn btn-dark btn-sm mt-3" type="submit" disabled={createVariant.isPending}>
-                  Tao bien the
+                <button className="btn btn-lyra btn-sm mt-3" type="submit" disabled={createVariant.isPending}>
+                  Tạo biến thể
                 </button>
               </form>
               <ul className="list-group list-group-flush mt-3">
@@ -133,7 +153,7 @@ export default function ProductDetailPage() {
                       <div>
                         <div className="fw-semibold">{variant.sku}</div>
                         <div className="small text-secondary">
-                          {variant.size} / {variant.color} · {formatMoney(variant.price)} · stock {variant.stock}
+                          {variant.size} / {variant.color} · {formatMoney(variant.price)} · tồn {variant.stock}
                         </div>
                       </div>
                       <form
@@ -146,7 +166,7 @@ export default function ProductDetailPage() {
                         }}
                       >
                         <input name="stock" type="number" min="0" className="form-control form-control-sm" defaultValue={variant.stock} />
-                        <button className="btn btn-outline-secondary btn-sm" type="submit">Cap ton</button>
+                        <button className="btn btn-outline-secondary btn-sm" type="submit">Cập nhật tồn</button>
                       </form>
                     </div>
                   </li>
@@ -158,7 +178,7 @@ export default function ProductDetailPage() {
         <div className="col-lg-6">
           <div className="card">
             <div className="card-body">
-              <h2 className="h6">Anh san pham (HTTPS URL)</h2>
+              <h2 className="h6">Ảnh sản phẩm (HTTPS URL)</h2>
               <form
                 onSubmit={imageForm.handleSubmit((values) => {
                   setProblem(null);
@@ -168,11 +188,11 @@ export default function ProductDetailPage() {
                 <input className="form-control mb-2" placeholder="https://..." {...imageForm.register("url", { required: true })} />
                 <div className="form-check mb-2">
                   <input className="form-check-input" type="checkbox" id="primary" {...imageForm.register("primary")} />
-                  <label className="form-check-label" htmlFor="primary">Anh chinh</label>
+                  <label className="form-check-label" htmlFor="primary">Ảnh chính</label>
                 </div>
                 <input className="form-control mb-2" type="number" min="0" {...imageForm.register("sortOrder")} />
-                <button className="btn btn-dark btn-sm" type="submit" disabled={createImage.isPending}>
-                  Them anh
+                <button className="btn btn-lyra btn-sm" type="submit" disabled={createImage.isPending}>
+                  Thêm ảnh
                 </button>
               </form>
               <ul className="list-group list-group-flush mt-3">

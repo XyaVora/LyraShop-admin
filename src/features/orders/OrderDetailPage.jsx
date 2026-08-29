@@ -3,13 +3,24 @@ import { useParams } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import { nextOrderStatus } from "../../services/api/endpoints.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
-import LoadingState from "../../components/common/LoadingState.jsx";
+import PageHeader from "../../components/common/PageHeader.jsx";
+import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
+import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import { formatDateTime, formatMoney } from "../../utils/format.js";
+import {
+  ORDER_STATUS_LABEL,
+  PAYMENT_METHOD_LABEL,
+  PAYMENT_STATUS_LABEL,
+  orderStatusClass,
+  paymentStatusClass
+} from "../../utils/status.js";
+import { useToastStore } from "../../store/toastStore.js";
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
+  const pushToast = useToastStore((state) => state.push);
   const query = useQuery({
     queryKey: ["admin", "orders", id],
     queryFn: () => adminApi.getOrder(id)
@@ -20,11 +31,12 @@ export default function OrderDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "orders"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      pushToast("Đã cập nhật trạng thái đơn");
     }
   });
 
   if (query.isLoading) {
-    return <LoadingState />;
+    return <SkeletonBlock rows={8} />;
   }
   if (query.isError) {
     return <ErrorAlert error={query.error} />;
@@ -35,48 +47,76 @@ export default function OrderDetailPage() {
 
   return (
     <div>
-      <h1 className="h4 mb-2">Don hang</h1>
-      <p className="text-secondary">{order.id}</p>
+      <PageHeader
+        title="Chi tiết đơn hàng"
+        crumbs={[
+          { label: "Tổng quan", to: "/" },
+          { label: "Đơn hàng", to: "/orders" },
+          { label: order.id.slice(0, 8) }
+        ]}
+      />
       {mutation.isError && <ErrorAlert error={mutation.error} />}
       <div className="card card-body mb-3">
-        <div className="row">
-          <div className="col-md-4"><strong>Trang thai:</strong> {order.status}</div>
-          <div className="col-md-4"><strong>Thanh toan:</strong> {order.paymentMethod} / {order.paymentStatus}</div>
-          <div className="col-md-4"><strong>Tong:</strong> {formatMoney(order.totalAmount)}</div>
-          <div className="col-md-6 mt-2"><strong>Dia chi:</strong> {order.shippingAddress}</div>
-          <div className="col-md-3 mt-2"><strong>SDT:</strong> {order.shippingPhone}</div>
-          <div className="col-md-3 mt-2"><strong>Tao luc:</strong> {formatDateTime(order.createdAt)}</div>
+        <div className="row g-3">
+          <div className="col-md-4">
+            <div className="text-secondary small">Trạng thái</div>
+            <StatusBadge
+              className={orderStatusClass(order.status)}
+              label={ORDER_STATUS_LABEL[order.status] || order.status}
+            />
+          </div>
+          <div className="col-md-4">
+            <div className="text-secondary small">Thanh toán</div>
+            <div>
+              {PAYMENT_METHOD_LABEL[order.paymentMethod] || order.paymentMethod}
+              {" · "}
+              <StatusBadge
+                className={paymentStatusClass(order.paymentStatus)}
+                label={PAYMENT_STATUS_LABEL[order.paymentStatus] || order.paymentStatus}
+              />
+            </div>
+          </div>
+          <div className="col-md-4">
+            <div className="text-secondary small">Tổng</div>
+            <div className="fw-semibold">{formatMoney(order.totalAmount)}</div>
+          </div>
+          <div className="col-md-6"><strong>Địa chỉ:</strong> {order.shippingAddress}</div>
+          <div className="col-md-3"><strong>SĐT:</strong> {order.shippingPhone}</div>
+          <div className="col-md-3"><strong>Tạo lúc:</strong> {formatDateTime(order.createdAt)}</div>
         </div>
         {next ? (
           <button
             type="button"
-            className="btn btn-dark btn-sm mt-3"
+            className="btn btn-lyra btn-sm mt-3"
             disabled={mutation.isPending}
             onClick={() => mutation.mutate(next)}
           >
-            Chuyen sang {next}
+            Chuyển sang {ORDER_STATUS_LABEL[next] || next}
           </button>
         ) : (
           <p className="small text-secondary mb-0 mt-3">
-            Khong the chuyen tiep (DELIVERED/CANCELLED hoac khong dung chuoi PENDING den DELIVERED).
+            Không thể chuyển tiếp (đã giao, đã hủy, hoặc không đúng chuỗi chờ xác nhận đến đã giao).
           </p>
         )}
       </div>
-      <div className="card card-body">
-        <h2 className="h6">Hang muc</h2>
-        <DataTable
-          rows={order.items || []}
-          rowKey={(row) => row.id}
-          columns={[
-            { key: "productName", header: "San pham" },
-            { key: "sku", header: "SKU" },
-            { key: "size", header: "Size" },
-            { key: "color", header: "Mau" },
-            { key: "quantity", header: "SL" },
-            { key: "unitPrice", header: "Don gia", render: (row) => formatMoney(row.unitPrice) },
-            { key: "subtotal", header: "Tam tinh", render: (row) => formatMoney(row.subtotal) }
-          ]}
-        />
+      <div className="card">
+        <div className="card-body">
+          <h2 className="h6">Hạng mục</h2>
+          <DataTable
+            rows={order.items || []}
+            rowKey={(row) => row.id}
+            emptyTitle="Đơn không có hạng mục"
+            columns={[
+              { key: "productName", header: "Sản phẩm" },
+              { key: "sku", header: "SKU" },
+              { key: "size", header: "Size" },
+              { key: "color", header: "Màu" },
+              { key: "quantity", header: "SL" },
+              { key: "unitPrice", header: "Đơn giá", render: (row) => formatMoney(row.unitPrice) },
+              { key: "subtotal", header: "Tạm tính", render: (row) => formatMoney(row.subtotal) }
+            ]}
+          />
+        </div>
       </div>
     </div>
   );

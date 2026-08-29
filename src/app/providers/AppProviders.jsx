@@ -33,7 +33,7 @@ export default function AppProviders({ children }) {
   if (!ready) {
     return (
       <div className="p-5">
-        <LoadingState label="Khoi tao phien..." />
+        <LoadingState label="Đang khởi tạo phiên..." />
       </div>
     );
   }

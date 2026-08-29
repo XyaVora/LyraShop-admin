@@ -1,85 +1,103 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
-import LoadingState from "../../components/common/LoadingState.jsx";
+import PageHeader from "../../components/common/PageHeader.jsx";
+import SearchField from "../../components/common/SearchField.jsx";
+import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
+import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import { formatMoney } from "../../utils/format.js";
+import { filterRows } from "../../utils/filter.js";
+import { activeClass } from "../../utils/status.js";
+import { useToastStore } from "../../store/toastStore.js";
 
 export default function ProductListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const pushToast = useToastStore((state) => state.push);
+  const [queryText, setQueryText] = useState("");
   const query = useQuery({
     queryKey: ["admin", "products"],
     queryFn: adminApi.listProducts
   });
   const activate = useMutation({
     mutationFn: adminApi.activateProduct,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "products"] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      pushToast("Đã hiện sản phẩm");
+    }
   });
   const deactivate = useMutation({
     mutationFn: adminApi.deactivateProduct,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "products"] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      pushToast("Đã ẩn sản phẩm");
+    }
   });
+  const rows = filterRows(query.data || [], queryText, ["name", "slug"]);
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h4 mb-0">San pham</h1>
-        <Link className="btn btn-dark btn-sm" to="/products/new">Tao san pham</Link>
+      <PageHeader
+        title="Sản phẩm"
+        crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Sản phẩm" }]}
+        actions={<Link className="btn btn-lyra btn-sm" to="/products/new">Tạo sản phẩm</Link>}
+      />
+      <div className="mb-3">
+        <SearchField
+          value={queryText}
+          onChange={setQueryText}
+          placeholder="Tìm theo tên hoặc slug..."
+        />
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {(activate.error || deactivate.error) && (
         <ErrorAlert error={activate.error || deactivate.error} />
       )}
       {query.isLoading ? (
-        <LoadingState />
+        <SkeletonBlock rows={6} />
       ) : (
         <div className="card">
-          <div className="card-body">
+          <div className="card-body p-0">
             <DataTable
-              rows={query.data || []}
+              rows={rows}
               rowKey={(row) => row.id}
+              onRowClick={(row) => navigate(`/products/${row.id}`)}
+              emptyTitle="Chưa có sản phẩm"
+              emptyDescription="Tạo sản phẩm đầu tiên để bắt đầu catalog."
               columns={[
-                {
-                  key: "name",
-                  header: "Ten",
-                  render: (row) => <Link to={`/products/${row.id}`}>{row.name}</Link>
-                },
+                { key: "name", header: "Tên" },
                 { key: "slug", header: "Slug" },
                 {
                   key: "basePrice",
-                  header: "Gia",
+                  header: "Giá",
                   render: (row) => formatMoney(row.basePrice)
                 },
-                { key: "categoryId", header: "Danh muc" },
+                { key: "categoryId", header: "Danh mục" },
                 {
                   key: "active",
-                  header: "Trang thai",
-                  render: (row) => (row.active ? "Hien" : "An")
+                  header: "Trạng thái",
+                  render: (row) => (
+                    <StatusBadge
+                      className={activeClass(row.active)}
+                      label={row.active ? "Hiện" : "Ẩn"}
+                    />
+                  )
                 },
                 {
                   key: "actions",
                   header: "",
+                  stopRowClick: true,
                   render: (row) => (
-                    <div className="btn-group btn-group-sm">
-                      {row.active ? (
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary"
-                          onClick={() => deactivate.mutate(row.id)}
-                        >
-                          An
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary"
-                          onClick={() => activate.mutate(row.id)}
-                        >
-                          Kich hoat
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => (row.active ? deactivate : activate).mutate(row.id)}
+                    >
+                      {row.active ? "Ẩn" : "Hiện"}
+                    </button>
                   )
                 }
               ]}

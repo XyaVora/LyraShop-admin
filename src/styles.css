@@ -1,48 +1,235 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap");
+
 :root {
   color-scheme: light;
+  --lyra-ink: #1c1917;
+  --lyra-muted: #57534e;
+  --lyra-line: #e7e5e4;
+  --lyra-bg: #f6f3ef;
+  --lyra-card: #ffffff;
+  --lyra-accent: #b45309;
+  --lyra-accent-dark: #92400e;
+  --lyra-sidebar: #1c1917;
+  --lyra-sidebar-active: #292524;
 }
 
 body {
   margin: 0;
-  background: #f4f5f7;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--lyra-bg);
+  color: var(--lyra-ink);
+  font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+}
+
+a {
+  color: var(--lyra-accent-dark);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--lyra-accent);
 }
 
 .admin-shell {
   display: grid;
-  grid-template-columns: 240px 1fr;
-}
-
-.admin-sidebar {
-  background: #111827;
+  grid-template-columns: 248px 1fr;
   min-height: 100vh;
 }
 
+.admin-sidebar {
+  background: var(--lyra-sidebar);
+  color: #fafaf9;
+  padding: 1.25rem 0.9rem;
+}
+
+.brand-mark {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.brand-sub {
+  color: #a8a29e;
+  font-size: 0.75rem;
+}
+
+.admin-sidebar .nav-link {
+  color: #d6d3d1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.admin-sidebar .nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .admin-sidebar .nav-link.active {
-  background: #1f2937;
+  background: var(--lyra-sidebar-active);
   color: #fff;
 }
 
 .admin-header {
   height: 64px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--lyra-card);
+  border-bottom: 1px solid var(--lyra-line);
+}
+
+.page-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.card {
+  border: 1px solid var(--lyra-line);
+  border-radius: 0.9rem;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+}
+
+.btn-lyra {
+  background: var(--lyra-accent);
+  border-color: var(--lyra-accent);
+  color: #fff;
+}
+
+.btn-lyra:hover,
+.btn-lyra:focus {
+  background: var(--lyra-accent-dark);
+  border-color: var(--lyra-accent-dark);
+  color: #fff;
+}
+
+.table {
+  --bs-table-hover-bg: #fafaf9;
+}
+
+.table thead th {
+  color: var(--lyra-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom-color: var(--lyra-line);
+}
+
+.table-row-clickable {
+  cursor: pointer;
+}
+
+.badge-soft-success {
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.badge-soft-warning {
+  background: #fffaeb;
+  color: #b54708;
+}
+
+.badge-soft-info {
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.badge-soft-primary {
+  background: #eef4ff;
+  color: #3538cd;
+}
+
+.badge-soft-danger {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.badge-soft-muted {
+  background: #f5f5f4;
+  color: #57534e;
+}
+
+.search-field {
+  position: relative;
+  display: block;
+  max-width: 320px;
+}
+
+.search-field svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--lyra-muted);
+}
+
+.search-field .form-control {
+  padding-left: 2.1rem;
+}
+
+.skeleton-line {
+  height: 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ece7e1 25%, #f7f4f0 50%, #ece7e1 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.empty-state {
+  color: var(--lyra-muted);
+}
+
+.stat-card .stat-label {
+  color: var(--lyra-muted);
+  font-size: 0.8rem;
+}
+
+.stat-card .stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .login-page {
-  background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+  background:
+    radial-gradient(circle at top right, rgba(180, 83, 9, 0.28), transparent 36%),
+    linear-gradient(180deg, #1c1917 0%, #292524 100%);
 }
 
 .login-card {
-  width: min(420px, calc(100% - 2rem));
+  width: min(440px, calc(100% - 2rem));
+  border: 0;
+  border-radius: 1.1rem;
 }
+
+.toast-host {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 1080;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.app-toast {
+  min-width: 240px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.7rem;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.18);
+}
+
+.app-toast-success { background: #067647; }
+.app-toast-danger { background: #b42318; }
+.app-toast-info { background: #175cd3; }
 
 @media (max-width: 768px) {
   .admin-shell {
     grid-template-columns: 1fr;
-  }
-
-  .admin-sidebar {
-    min-height: auto;
   }
 }
