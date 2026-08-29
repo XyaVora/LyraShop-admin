@@ -9,9 +9,12 @@ import { useAuthStore } from "../../store/authStore.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
 
 const schema = z.object({
-  email: z.string().trim().email("Email khong hop le"),
-  password: z.string().min(1, "Mat khau bat buoc")
+  email: z.string().trim().email("Email không hợp lệ"),
+  password: z.string().min(1, "Mật khẩu bắt buộc")
 });
+
+const DEMO_EMAIL = import.meta.env.VITE_DEMO_ADMIN_EMAIL || "";
+const DEMO_PASSWORD = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || "";
 
 export default function LoginPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
@@ -19,7 +22,10 @@ export default function LoginPage() {
   const [problem, setProblem] = useState(null);
   const form = useForm({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "" }
+    defaultValues: {
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD
+    }
   });
 
   if (isAuthenticated) {
@@ -36,7 +42,7 @@ export default function LoginPage() {
         setProblem({
           status: 403,
           code: "FORBIDDEN",
-          message: "Tai khoan khong co quyen ADMIN",
+          message: "Tài khoản không có quyền quản trị",
           fieldErrors: {}
         });
         return;
@@ -47,10 +53,11 @@ export default function LoginPage() {
 
   return (
     <div className="login-page d-flex align-items-center justify-content-center min-vh-100">
-      <div className="card shadow-sm login-card">
-        <div className="card-body p-4">
-          <h1 className="h4 mb-1">LyraShop Admin</h1>
-          <p className="text-secondary mb-4">Dang nhap bang tai khoan quan tri</p>
+      <div className="card shadow login-card">
+        <div className="card-body p-4 p-md-5">
+          <div className="brand-mark mb-1">LYRA</div>
+          <h1 className="h4 mb-1">Đăng nhập quản trị</h1>
+          <p className="text-secondary mb-4">Dành cho nhân sự LyraShop</p>
           <ErrorAlert problem={problem} />
           <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
             <div className="mb-3">
@@ -67,7 +74,7 @@ export default function LoginPage() {
               )}
             </div>
             <div className="mb-4">
-              <label className="form-label" htmlFor="password">Mat khau</label>
+              <label className="form-label" htmlFor="password">Mật khẩu</label>
               <input
                 id="password"
                 type="password"
@@ -81,12 +88,17 @@ export default function LoginPage() {
             </div>
             <button
               type="submit"
-              className="btn btn-dark w-100"
+              className="btn btn-lyra w-100"
               disabled={form.formState.isSubmitting}
             >
-              {form.formState.isSubmitting ? "Dang nhap..." : "Dang nhap"}
+              {form.formState.isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
+          {DEMO_EMAIL && (
+            <p className="small text-secondary mt-3 mb-0">
+              Tài khoản demo: {DEMO_EMAIL}
+            </p>
+          )}
         </div>
       </div>
     </div>

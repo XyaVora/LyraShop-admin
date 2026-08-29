@@ -1,10 +1,19 @@
-export default function DataTable({ columns, rows, rowKey, empty = "Khong co du lieu." }) {
+import EmptyState from "../common/EmptyState.jsx";
+
+export default function DataTable({
+  columns,
+  rows,
+  rowKey,
+  emptyTitle = "Không có dữ liệu",
+  emptyDescription,
+  onRowClick
+}) {
   if (!rows || rows.length === 0) {
-    return <p className="text-secondary mb-0">{empty}</p>;
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
   return (
     <div className="table-responsive">
-      <table className="table table-sm table-hover align-middle">
+      <table className="table table-hover align-middle mb-0">
         <thead>
           <tr>
             {columns.map((column) => (
@@ -14,9 +23,16 @@ export default function DataTable({ columns, rows, rowKey, empty = "Khong co du 
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)}>
+            <tr
+              key={rowKey(row)}
+              className={onRowClick ? "table-row-clickable" : undefined}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+            >
               {columns.map((column) => (
-                <td key={column.key}>
+                <td
+                  key={column.key}
+                  onClick={column.stopRowClick ? (event) => event.stopPropagation() : undefined}
+                >
                   {column.render ? column.render(row) : row[column.key]}
                 </td>
               ))}
