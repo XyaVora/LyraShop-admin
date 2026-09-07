@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ConfirmModal from "../../components/common/ConfirmModal.jsx";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import OperatorNote from "../../components/common/OperatorNote.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
@@ -133,6 +134,9 @@ export default function ProductDetailPage() {
           />
         )}
       />
+      <OperatorNote>
+        Backend chưa có GET quản trị theo id nên trang này lấy sản phẩm từ danh sách. Catalog và đánh giá công khai 404 nếu sản phẩm ẩn. Tồn kho chỉ sửa được khi phản hồi tạo biến thể trả về version.
+      </OperatorNote>
       <ErrorAlert problem={problem} />
       {product.active && catalog.isError && (
         <p className="small text-secondary">

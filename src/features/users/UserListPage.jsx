@@ -48,6 +48,7 @@ export default function UserListPage() {
       <PageHeader
         title="Tài khoản"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài khoản" }]}
+        description="Không khóa được chính mình. Đăng ký luôn tạo khách; không có form tạo quản trị trên admin này."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm email, tên, SĐT..." />

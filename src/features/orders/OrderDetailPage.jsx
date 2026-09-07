@@ -54,6 +54,7 @@ export default function OrderDetailPage() {
           { label: "Đơn hàng", to: "/orders" },
           { label: order.id.slice(0, 8) }
         ]}
+        description="Không có userId trên đơn. Trạng thái chỉ đi tới (chờ xác nhận → đã giao); hủy không thao tác được ở đây."
       />
       {mutation.isError && <ErrorAlert error={mutation.error} />}
       <div className="card card-body mb-3">
