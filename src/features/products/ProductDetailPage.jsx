@@ -7,7 +7,8 @@ import ErrorAlert from "../../components/common/ErrorAlert.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
-import { formatMoney } from "../../utils/format.js";
+import DataTable from "../../components/tables/DataTable.jsx";
+import { formatDateTime, formatMoney } from "../../utils/format.js";
 import { parseApiError } from "../../services/api/errors.js";
 import { activeClass } from "../../utils/status.js";
 import { useToastStore } from "../../store/toastStore.js";
@@ -30,6 +31,11 @@ export default function ProductDetailPage() {
   const catalog = useQuery({
     queryKey: ["public", "products", id],
     queryFn: () => adminApi.getPublicProduct(id),
+    enabled: Boolean(product?.active)
+  });
+  const reviews = useQuery({
+    queryKey: ["public", "products", id, "reviews"],
+    queryFn: () => adminApi.listProductReviews(id),
     enabled: Boolean(product?.active)
   });
 
@@ -62,6 +68,16 @@ export default function ProductDetailPage() {
       imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
       queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
       pushToast("Đã thêm ảnh");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const deleteReview = useMutation({
+    mutationFn: adminApi.deleteReview,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["public", "products", id, "reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+      pushToast("Đã xóa đánh giá");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
@@ -126,6 +142,63 @@ export default function ProductDetailPage() {
           Sản phẩm đang ẩn nên catalog công khai không trả chi tiết.
         </p>
       )}
+
+      <div className="card mb-4">
+        <div className="card-body">
+          <h2 className="h6">Đánh giá trên catalog công khai</h2>
+          {!product.active ? (
+            <p className="small text-secondary mb-0">
+              Sản phẩm đang ẩn. GET /api/v1/products/{"{id}"}/reviews trả 404 nếu sản phẩm không active.
+            </p>
+          ) : reviews.isLoading ? (
+            <SkeletonBlock rows={4} />
+          ) : reviews.isError ? (
+            <p className="small text-secondary mb-0">
+              Không tải được đánh giá công khai (sản phẩm ẩn khỏi khách hoặc catalog không trả sản phẩm).
+            </p>
+          ) : (
+            <DataTable
+              rows={reviews.data || []}
+              rowKey={(row) => row.id}
+              emptyTitle="Chưa có đánh giá"
+              emptyDescription="Khách chỉ gửi được đánh giá sau khi đơn giao thành công."
+              columns={[
+                { key: "rating", header: "Điểm" },
+                { key: "comment", header: "Nội dung" },
+                {
+                  key: "userId",
+                  header: "Khách",
+                  render: (row) => String(row.userId || "").slice(0, 8) || "-"
+                },
+                {
+                  key: "createdAt",
+                  header: "Lúc",
+                  render: (row) => formatDateTime(row.createdAt)
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  render: (row) => (
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      disabled={deleteReview.isPending}
+                      onClick={() => {
+                        if (window.confirm("Xóa đánh giá này?")) {
+                          setProblem(null);
+                          deleteReview.mutate(row.id);
+                        }
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  )
+                }
+              ]}
+            />
+          )}
+        </div>
+      </div>
 
       {catalog.data && (
         <div className="card mb-4">
