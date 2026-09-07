@@ -180,7 +180,8 @@ export function adminEndpoints() {
 export function publicEndpoints() {
   return {
     categories: { method: "GET", path: "/api/v1/categories" },
-    product: (id) => ({ method: "GET", path: `/api/v1/products/${id}` })
+    product: (id) => ({ method: "GET", path: `/api/v1/products/${id}` }),
+    productReviews: (id) => ({ method: "GET", path: `/api/v1/products/${id}/reviews` })
   };
 }
 

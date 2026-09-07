@@ -60,6 +60,10 @@ describe("auth and admin endpoint mapping", () => {
       method: "GET",
       path: "/api/v1/products/p1"
     });
+    expect(publicEndpoints().productReviews("p1")).toEqual({
+      method: "GET",
+      path: "/api/v1/products/p1/reviews"
+    });
   });
 
   it("omits unknown JSON fields on write bodies", () => {
