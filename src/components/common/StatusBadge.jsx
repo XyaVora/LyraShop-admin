@@ -1,3 +1,3 @@
 export default function StatusBadge({ label, className }) {
-  return <span className={`badge rounded-pill ${className}`}>{label}</span>;
+  return <span className={`badge ${className}`}>{label}</span>;
 }
