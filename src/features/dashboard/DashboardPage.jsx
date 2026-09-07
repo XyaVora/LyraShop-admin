@@ -39,7 +39,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Tổng quan"
         crumbs={[{ label: "Tổng quan" }]}
-        description="Số liệu lấy từ GET /api/v1/admin/dashboard, tính thêm trên JSON sẵn có."
+        description="Một snapshot GET /api/v1/admin/dashboard. Giá trị đơn TB và tỷ lệ hủy tính trên máy từ JSON đó, không phải API riêng."
       />
       {query.isError && <ErrorAlert error={query.error} />}
       {query.isLoading ? (

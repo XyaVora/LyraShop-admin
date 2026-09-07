@@ -57,6 +57,7 @@ export default function ProductCreatePage() {
           { label: "Sản phẩm", to: "/products" },
           { label: "Tạo mới" }
         ]}
+        description="Sản phẩm mới mặc định ẩn. Chỉ chọn được danh mục đang hiện. Sau khi tạo, thêm biến thể rồi bấm Hiện trên danh sách."
       />
       {categories.isError && <ErrorAlert error={categories.error} />}
       <ErrorAlert problem={problem} />

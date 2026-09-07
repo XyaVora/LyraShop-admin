@@ -43,6 +43,7 @@ export default function OrderListPage() {
       <PageHeader
         title="Đơn hàng"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Đơn hàng" }]}
+        description="API đơn không trả mã khách. Lọc và phân trang chạy trên máy từ toàn bộ danh sách."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm mã đơn, trạng thái, SĐT..." />

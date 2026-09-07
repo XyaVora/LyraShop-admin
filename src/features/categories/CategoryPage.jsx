@@ -98,7 +98,7 @@ export default function CategoryPage() {
       <PageHeader
         title="Danh mục"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Danh mục" }]}
-        description="Danh sách công khai chỉ gồm danh mục đang hiện."
+        description="Danh sách lấy từ GET công khai nên chỉ có danh mục đang hiện. Ẩn là một chiều: chưa có API hiện lại."
       />
       <ErrorAlert problem={problem} />
       {query.isError && <ErrorAlert error={query.error} />}
