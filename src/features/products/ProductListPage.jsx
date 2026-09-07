@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import ConfirmModal from "../../components/common/ConfirmModal.jsx";
+import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -21,6 +23,7 @@ export default function ProductListPage() {
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.push);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [pendingHide, setPendingHide] = useState(null);
   const query = useQuery({
     queryKey: ["admin", "products"],
     queryFn: adminApi.listProducts
@@ -79,6 +82,18 @@ export default function ProductListPage() {
           <option value="active">Đang hiện</option>
           <option value="hidden">Đang ẩn</option>
         </select>
+        <ExportCsvButton
+          filename="lyra-products.csv"
+          rows={list.allRows}
+          columns={[
+            { header: "id", value: (row) => row.id },
+            { header: "name", value: (row) => row.name },
+            { header: "slug", value: (row) => row.slug },
+            { header: "basePrice", value: (row) => row.basePrice },
+            { header: "categoryId", value: (row) => row.categoryId },
+            { header: "active", value: (row) => row.active }
+          ]}
+        />
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {(activate.error || deactivate.error) && (
@@ -127,7 +142,7 @@ export default function ProductListPage() {
                     <button
                       type="button"
                       className="btn btn-outline-secondary btn-sm"
-                      onClick={() => (row.active ? deactivate : activate).mutate(row.id)}
+                      onClick={() => (row.active ? setPendingHide(row) : activate.mutate(row.id))}
                     >
                       {row.active ? "Ẩn" : "Hiện"}
                     </button>
@@ -146,6 +161,18 @@ export default function ProductListPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={Boolean(pendingHide)}
+        title="Ẩn sản phẩm"
+        message={`"${pendingHide?.name || ""}" sẽ không còn hiện trên catalog công khai.`}
+        confirmLabel="Ẩn"
+        danger
+        onCancel={() => setPendingHide(null)}
+        onConfirm={() => {
+          deactivate.mutate(pendingHide.id);
+          setPendingHide(null);
+        }}
+      />
     </div>
   );
 }
