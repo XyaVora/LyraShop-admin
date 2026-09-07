@@ -56,6 +56,10 @@ describe("auth and admin endpoint mapping", () => {
     expect(admin.reviews).toEqual({ method: "GET", path: "/api/v1/admin/reviews" });
     expect(admin.deleteReview(3)).toEqual({ method: "DELETE", path: "/api/v1/admin/reviews/3" });
     expect(publicEndpoints().categories).toEqual({ method: "GET", path: "/api/v1/categories" });
+    expect(publicEndpoints().product("p1")).toEqual({
+      method: "GET",
+      path: "/api/v1/products/p1"
+    });
   });
 
   it("omits unknown JSON fields on write bodies", () => {

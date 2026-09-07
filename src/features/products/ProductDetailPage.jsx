@@ -27,6 +27,11 @@ export default function ProductDetailPage() {
     () => (products.data || []).find((item) => item.id === id),
     [products.data, id]
   );
+  const catalog = useQuery({
+    queryKey: ["public", "products", id],
+    queryFn: () => adminApi.getPublicProduct(id),
+    enabled: Boolean(product?.active)
+  });
 
   const variantForm = useForm({
     defaultValues: { sku: "", size: "", color: "", price: 0, stock: 0 }
@@ -40,6 +45,7 @@ export default function ProductDetailPage() {
     onSuccess: (created) => {
       setSessionVariants((current) => [created, ...current]);
       variantForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
       pushToast("Đã tạo biến thể");
     },
     onError: (error) => setProblem(parseApiError(error))
@@ -54,6 +60,7 @@ export default function ProductDetailPage() {
     onSuccess: (created) => {
       setSessionImages((current) => [created, ...current]);
       imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
+      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
       pushToast("Đã thêm ảnh");
     },
     onError: (error) => setProblem(parseApiError(error))
@@ -109,6 +116,68 @@ export default function ProductDetailPage() {
         )}
       />
       <ErrorAlert problem={problem} />
+      {product.active && catalog.isError && (
+        <p className="small text-secondary">
+          Catalog công khai không trả sản phẩm này (ẩn khỏi khách hoặc thiếu biến thể đang bán).
+        </p>
+      )}
+      {!product.active && (
+        <p className="small text-secondary">
+          Sản phẩm đang ẩn nên catalog công khai không trả chi tiết.
+        </p>
+      )}
+
+      {catalog.data && (
+        <div className="card mb-4">
+          <div className="card-body">
+            <h2 className="h6">Catalog đang hiện với khách</h2>
+            {catalog.data.averageRating != null && (
+              <p className="small text-secondary mb-3">
+                Điểm trung bình {catalog.data.averageRating} · {catalog.data.reviewCount} đánh giá
+              </p>
+            )}
+            <div className="row g-3">
+              <div className="col-lg-7">
+                <h3 className="h6">Biến thể đang bán</h3>
+                {(catalog.data.variants || []).length === 0 ? (
+                  <p className="small text-secondary mb-0">Chưa có biến thể đang hiện.</p>
+                ) : (
+                  <ul className="list-group list-group-flush">
+                    {catalog.data.variants.map((variant) => (
+                      <li className="list-group-item px-0 d-flex justify-content-between" key={variant.id}>
+                        <span>{variant.sku} · {variant.size} / {variant.color}</span>
+                        <span className="text-secondary">
+                          {formatMoney(variant.price)} · tồn {variant.stock}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="col-lg-5">
+                <h3 className="h6">Ảnh</h3>
+                {(catalog.data.images || []).length === 0 ? (
+                  <p className="small text-secondary mb-0">Chưa có ảnh trên catalog.</p>
+                ) : (
+                  <div className="d-flex flex-wrap gap-2">
+                    {catalog.data.images.map((image) => (
+                      <a
+                        key={image.id}
+                        href={image.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="small"
+                      >
+                        {image.primary ? "Ảnh chính" : `Ảnh #${image.sortOrder}`}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="row g-4">
         <div className="col-lg-6">

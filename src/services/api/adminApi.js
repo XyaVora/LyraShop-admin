@@ -34,6 +34,9 @@ export const adminApi = {
   listPublicCategories() {
     return requestEndpoint(published.categories).then((res) => res.data);
   },
+  getPublicProduct(id) {
+    return requestEndpoint(published.product(id)).then((res) => res.data);
+  },
   createCategory(input) {
     return requestEndpoint(admin.createCategory, createCategoryBody(input)).then((res) => res.data);
   },
