@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
@@ -6,14 +6,17 @@ import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
+import PaginationBar from "../../components/tables/PaginationBar.jsx";
+import { useListView } from "../../hooks/useListView.js";
 import { formatDateTime } from "../../utils/format.js";
-import { filterRows } from "../../utils/filter.js";
 import { useToastStore } from "../../store/toastStore.js";
+
+const SEARCH_FIELDS = ["comment", "productId", "userId", "rating"];
 
 export default function ReviewListPage() {
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.push);
-  const [queryText, setQueryText] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("all");
   const query = useQuery({
     queryKey: ["admin", "reviews"],
     queryFn: adminApi.listReviews
@@ -25,7 +28,15 @@ export default function ReviewListPage() {
       pushToast("Đã xóa đánh giá");
     }
   });
-  const rows = filterRows(query.data || [], queryText, ["comment", "productId", "userId", "rating"]);
+  const extraFilter = useCallback((row) => (
+    ratingFilter === "all" || Number(row.rating) === Number(ratingFilter)
+  ), [ratingFilter]);
+  const list = useListView(query.data || [], {
+    fields: SEARCH_FIELDS,
+    defaultSortKey: "createdAt",
+    defaultSortDir: "desc",
+    extraFilter
+  });
 
   return (
     <div>
@@ -33,8 +44,22 @@ export default function ReviewListPage() {
         title="Đánh giá"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Đánh giá" }]}
       />
-      <div className="mb-3">
-        <SearchField value={queryText} onChange={setQueryText} placeholder="Tìm nội dung đánh giá..." />
+      <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm nội dung đánh giá..." />
+        <select
+          className="form-select form-select-sm list-filter"
+          value={ratingFilter}
+          onChange={(event) => {
+            setRatingFilter(event.target.value);
+            list.setPage(1);
+          }}
+          aria-label="Lọc điểm đánh giá"
+        >
+          <option value="all">Tất cả điểm</option>
+          {[5, 4, 3, 2, 1].map((rating) => (
+            <option key={rating} value={rating}>{rating} sao</option>
+          ))}
+        </select>
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
@@ -42,16 +67,21 @@ export default function ReviewListPage() {
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={rows}
+              rows={list.rows}
               rowKey={(row) => row.id}
               emptyTitle="Chưa có đánh giá"
+              emptyDescription="Thử đổi bộ lọc điểm hoặc nội dung."
+              sortKey={list.sortKey}
+              sortDir={list.sortDir}
+              onSort={list.toggleSort}
               columns={[
-                { key: "id", header: "ID" },
-                { key: "rating", header: "Điểm" },
-                { key: "comment", header: "Nội dung" },
+                { key: "id", header: "ID", sortable: true },
+                { key: "rating", header: "Điểm", sortable: true },
+                { key: "comment", header: "Nội dung", sortable: true },
                 {
                   key: "createdAt",
                   header: "Lúc",
+                  sortable: true,
                   render: (row) => formatDateTime(row.createdAt)
                 },
                 {
@@ -73,6 +103,14 @@ export default function ReviewListPage() {
                   )
                 }
               ]}
+            />
+            <PaginationBar
+              page={list.page}
+              totalPages={list.totalPages}
+              total={list.total}
+              pageSize={list.pageSize}
+              onPageChange={list.setPage}
+              onPageSizeChange={list.setPageSize}
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
@@ -7,16 +7,19 @@ import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
+import PaginationBar from "../../components/tables/PaginationBar.jsx";
+import { useListView } from "../../hooks/useListView.js";
 import { useAuthStore } from "../../store/authStore.js";
-import { filterRows } from "../../utils/filter.js";
 import { activeClass } from "../../utils/status.js";
 import { useToastStore } from "../../store/toastStore.js";
+
+const SEARCH_FIELDS = ["email", "fullName", "phone", "role"];
 
 export default function UserListPage() {
   const queryClient = useQueryClient();
   const subject = useAuthStore((state) => state.subject);
   const pushToast = useToastStore((state) => state.push);
-  const [queryText, setQueryText] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
   const query = useQuery({
     queryKey: ["admin", "users"],
     queryFn: adminApi.listUsers
@@ -28,7 +31,14 @@ export default function UserListPage() {
       pushToast("Đã cập nhật tài khoản");
     }
   });
-  const rows = filterRows(query.data || [], queryText, ["email", "fullName", "phone", "role"]);
+  const extraFilter = useCallback((row) => (
+    roleFilter === "all" || row.role === roleFilter
+  ), [roleFilter]);
+  const list = useListView(query.data || [], {
+    fields: SEARCH_FIELDS,
+    defaultSortKey: "email",
+    extraFilter
+  });
 
   return (
     <div>
@@ -36,8 +46,21 @@ export default function UserListPage() {
         title="Tài khoản"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài khoản" }]}
       />
-      <div className="mb-3">
-        <SearchField value={queryText} onChange={setQueryText} placeholder="Tìm email, tên, SĐT..." />
+      <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm email, tên, SĐT..." />
+        <select
+          className="form-select form-select-sm list-filter"
+          value={roleFilter}
+          onChange={(event) => {
+            setRoleFilter(event.target.value);
+            list.setPage(1);
+          }}
+          aria-label="Lọc vai trò"
+        >
+          <option value="all">Tất cả vai trò</option>
+          <option value="ADMIN">Quản trị</option>
+          <option value="CUSTOMER">Khách</option>
+        </select>
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
@@ -45,21 +68,27 @@ export default function UserListPage() {
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={rows}
+              rows={list.rows}
               rowKey={(row) => row.id}
               emptyTitle="Chưa có tài khoản"
+              emptyDescription="Thử đổi bộ lọc tìm kiếm."
+              sortKey={list.sortKey}
+              sortDir={list.sortDir}
+              onSort={list.toggleSort}
               columns={[
-                { key: "email", header: "Email" },
-                { key: "fullName", header: "Tên" },
-                { key: "phone", header: "SĐT" },
+                { key: "email", header: "Email", sortable: true },
+                { key: "fullName", header: "Tên", sortable: true },
+                { key: "phone", header: "SĐT", sortable: true },
                 {
                   key: "role",
                   header: "Vai trò",
+                  sortable: true,
                   render: (row) => (row.role === "ADMIN" ? "Quản trị" : "Khách")
                 },
                 {
                   key: "active",
                   header: "Trạng thái",
+                  sortable: true,
                   render: (row) => (
                     <StatusBadge
                       className={activeClass(row.active)}
@@ -85,6 +114,14 @@ export default function UserListPage() {
                   }
                 }
               ]}
+            />
+            <PaginationBar
+              page={list.page}
+              totalPages={list.totalPages}
+              total={list.total}
+              pageSize={list.pageSize}
+              onPageChange={list.setPage}
+              onPageSizeChange={list.setPageSize}
             />
           </div>
         </div>

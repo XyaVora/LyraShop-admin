@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
@@ -8,8 +8,9 @@ import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
+import PaginationBar from "../../components/tables/PaginationBar.jsx";
+import { useListView } from "../../hooks/useListView.js";
 import { formatDateTime, formatMoney } from "../../utils/format.js";
-import { filterRows } from "../../utils/filter.js";
 import {
   ORDER_STATUS_LABEL,
   PAYMENT_STATUS_LABEL,
@@ -17,14 +18,24 @@ import {
   paymentStatusClass
 } from "../../utils/status.js";
 
+const SEARCH_FIELDS = ["id", "status", "paymentStatus", "shippingPhone"];
+
 export default function OrderListPage() {
   const navigate = useNavigate();
-  const [queryText, setQueryText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const query = useQuery({
     queryKey: ["admin", "orders"],
     queryFn: adminApi.listOrders
   });
-  const rows = filterRows(query.data || [], queryText, ["id", "status", "paymentStatus", "shippingPhone"]);
+  const extraFilter = useCallback((row) => (
+    statusFilter === "all" || row.status === statusFilter
+  ), [statusFilter]);
+  const list = useListView(query.data || [], {
+    fields: SEARCH_FIELDS,
+    defaultSortKey: "createdAt",
+    defaultSortDir: "desc",
+    extraFilter
+  });
 
   return (
     <div>
@@ -32,32 +43,53 @@ export default function OrderListPage() {
         title="Đơn hàng"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Đơn hàng" }]}
       />
-      <div className="mb-3">
-        <SearchField value={queryText} onChange={setQueryText} placeholder="Tìm mã đơn, trạng thái, SĐT..." />
+      <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm mã đơn, trạng thái, SĐT..." />
+        <select
+          className="form-select form-select-sm list-filter"
+          value={statusFilter}
+          onChange={(event) => {
+            setStatusFilter(event.target.value);
+            list.setPage(1);
+          }}
+          aria-label="Lọc trạng thái đơn"
+        >
+          <option value="all">Tất cả trạng thái</option>
+          {Object.entries(ORDER_STATUS_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {query.isLoading ? <SkeletonBlock rows={6} /> : (
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={rows}
+              rows={list.rows}
               rowKey={(row) => row.id}
               onRowClick={(row) => navigate(`/orders/${row.id}`)}
               emptyTitle="Chưa có đơn hàng"
+              emptyDescription="Thử đổi bộ lọc hoặc đợi đơn mới."
+              sortKey={list.sortKey}
+              sortDir={list.sortDir}
+              onSort={list.toggleSort}
               columns={[
                 {
                   key: "id",
                   header: "Mã",
+                  sortable: true,
                   render: (row) => row.id.slice(0, 8)
                 },
                 {
                   key: "totalAmount",
                   header: "Tổng",
+                  sortable: true,
                   render: (row) => formatMoney(row.totalAmount)
                 },
                 {
                   key: "status",
                   header: "Trạng thái",
+                  sortable: true,
                   render: (row) => (
                     <StatusBadge
                       className={orderStatusClass(row.status)}
@@ -68,6 +100,7 @@ export default function OrderListPage() {
                 {
                   key: "paymentStatus",
                   header: "Thanh toán",
+                  sortable: true,
                   render: (row) => (
                     <StatusBadge
                       className={paymentStatusClass(row.paymentStatus)}
@@ -78,9 +111,18 @@ export default function OrderListPage() {
                 {
                   key: "createdAt",
                   header: "Tạo lúc",
+                  sortable: true,
                   render: (row) => formatDateTime(row.createdAt)
                 }
               ]}
+            />
+            <PaginationBar
+              page={list.page}
+              totalPages={list.totalPages}
+              total={list.total}
+              pageSize={list.pageSize}
+              onPageChange={list.setPage}
+              onPageSizeChange={list.setPageSize}
             />
           </div>
         </div>

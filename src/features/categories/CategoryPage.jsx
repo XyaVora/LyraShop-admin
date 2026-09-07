@@ -9,10 +9,13 @@ import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
+import PaginationBar from "../../components/tables/PaginationBar.jsx";
+import { useListView } from "../../hooks/useListView.js";
 import { parseApiError } from "../../services/api/errors.js";
 import { slugify } from "../../utils/format.js";
-import { filterRows } from "../../utils/filter.js";
 import { useToastStore } from "../../store/toastStore.js";
+
+const SEARCH_FIELDS = ["name", "slug"];
 
 const schema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -26,7 +29,6 @@ export default function CategoryPage() {
   const pushToast = useToastStore((state) => state.push);
   const [problem, setProblem] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [queryText, setQueryText] = useState("");
   const query = useQuery({
     queryKey: ["public", "categories"],
     queryFn: adminApi.listPublicCategories
@@ -83,7 +85,10 @@ export default function CategoryPage() {
     }
   }
 
-  const rows = filterRows(query.data || [], queryText, ["name", "slug"]);
+  const list = useListView(query.data || [], {
+    fields: SEARCH_FIELDS,
+    defaultSortKey: "name"
+  });
 
   return (
     <div>
@@ -130,17 +135,21 @@ export default function CategoryPage() {
           <div className="card">
             <div className="card-body">
               <div className="mb-3">
-                <SearchField value={queryText} onChange={setQueryText} placeholder="Tìm danh mục..." />
+                <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm danh mục..." />
               </div>
               {query.isLoading ? <SkeletonBlock /> : (
+                <>
                 <DataTable
-                  rows={rows}
+                  rows={list.rows}
                   rowKey={(row) => row.id}
                   emptyTitle="Chưa có danh mục hiện"
+                  sortKey={list.sortKey}
+                  sortDir={list.sortDir}
+                  onSort={list.toggleSort}
                   columns={[
-                    { key: "name", header: "Tên" },
-                    { key: "slug", header: "Slug" },
-                    { key: "parentId", header: "Cha" },
+                    { key: "name", header: "Tên", sortable: true },
+                    { key: "slug", header: "Slug", sortable: true },
+                    { key: "parentId", header: "Cha", sortable: true },
                     {
                       key: "actions",
                       header: "",
@@ -173,6 +182,15 @@ export default function CategoryPage() {
                     }
                   ]}
                 />
+                <PaginationBar
+                  page={list.page}
+                  totalPages={list.totalPages}
+                  total={list.total}
+                  pageSize={list.pageSize}
+                  onPageChange={list.setPage}
+                  onPageSizeChange={list.setPageSize}
+                />
+                </>
               )}
             </div>
           </div>

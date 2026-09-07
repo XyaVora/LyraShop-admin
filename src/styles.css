@@ -118,6 +118,29 @@ a:hover {
   cursor: pointer;
 }
 
+.table-sort {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  font-weight: inherit;
+}
+
+.table-sort.is-active {
+  color: var(--lyra-ink);
+}
+
+.pagination-bar {
+  border-top: 1px solid var(--lyra-line);
+}
+
+.list-filter {
+  max-width: 180px;
+}
+
 .badge-soft-success {
   background: #ecfdf3;
   color: #067647;
