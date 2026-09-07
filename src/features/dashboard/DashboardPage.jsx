@@ -5,7 +5,6 @@ import ErrorAlert from "../../components/common/ErrorAlert.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
-import DataTable from "../../components/tables/DataTable.jsx";
 import {
   averagePaidOrder,
   cancelRate,
@@ -46,14 +45,12 @@ export default function DashboardPage() {
         <SkeletonBlock rows={6} />
       ) : data ? (
         <>
-          <div className="row g-3 mb-4">
+          <div className="stats-grid mb-4">
             {cards.map((card) => (
-              <div className="col-md-4 col-xl-2" key={card.label}>
-                <div className="card stat-card h-100">
-                  <div className="card-body">
-                    <div className="stat-label">{card.label}</div>
-                    <div className="stat-value">{card.value}</div>
-                  </div>
+              <div className="stat-card" key={card.label}>
+                <div className="card-body">
+                  <div className="stat-label">{card.label}</div>
+                  <div className="stat-value">{card.value}</div>
                 </div>
               </div>
             ))}
@@ -84,22 +81,26 @@ export default function DashboardPage() {
           <div className="card">
             <div className="card-body">
               <h2 className="h6 mb-3">Sản phẩm bán chạy</h2>
-              <DataTable
-                rows={data.bestSellers || []}
-                rowKey={(row) => row.productId}
-                onRowClick={(row) => navigate(`/products/${row.productId}`)}
-                emptyTitle="Chưa có sản phẩm bán chạy"
-                emptyDescription="Khi có đơn đã ghi nhận, danh sách sẽ hiện ở đây."
-                columns={[
-                  { key: "productName", header: "Sản phẩm" },
-                  { key: "quantitySold", header: "Số lượng" },
-                  {
-                    key: "revenue",
-                    header: "Doanh thu",
-                    render: (row) => formatMoney(row.revenue)
-                  }
-                ]}
-              />
+              {(data.bestSellers || []).length === 0 ? (
+                <p className="admin-page-sub mb-0">Khi có đơn đã ghi nhận, danh sách sẽ hiện ở đây.</p>
+              ) : (
+                <ol className="admin-top-list">
+                  {data.bestSellers.map((row, index) => (
+                    <li
+                      key={row.productId}
+                      className="admin-top-item"
+                      onClick={() => navigate(`/products/${row.productId}`)}
+                    >
+                      <span className="admin-top-rank">{String(index + 1).padStart(2, "0")}</span>
+                      <div className="admin-top-text">
+                        <span className="admin-top-name">{row.productName}</span>
+                        <span className="admin-top-sub">{row.quantitySold} đã bán</span>
+                      </div>
+                      <span className="admin-amount">{formatMoney(row.revenue)}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           </div>
         </>

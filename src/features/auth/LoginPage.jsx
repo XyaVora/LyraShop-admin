@@ -52,12 +52,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page d-flex align-items-center justify-content-center min-vh-100">
-      <div className="card shadow login-card">
-        <div className="card-body p-4 p-md-5">
-          <div className="brand-mark mb-1">LYRA</div>
-          <h1 className="h4 mb-1">Đăng nhập quản trị</h1>
-          <p className="text-secondary mb-4">Dành cho nhân sự LyraShop</p>
+    <div className="login-page">
+      <div className="login-visual">
+        <div className="login-visual-logo">LYRA</div>
+        <p className="login-visual-sub">
+          Quản trị cửa hàng thời trang. Catalog, đơn hàng và tài khoản trên cùng một hệ thống thiết kế với cửa hàng.
+        </p>
+      </div>
+      <div className="login-form-col">
+      <div className="card login-card">
+        <div className="card-body">
+          <div className="admin-sidebar-tag mb-3">Admin</div>
+          <h1 className="page-title mb-1">Đăng nhập</h1>
+          <p className="admin-page-sub mb-4">Dành cho nhân sự LyraShop</p>
           <ErrorAlert problem={problem} />
           <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
             <div className="mb-3">
@@ -100,6 +107,7 @@ export default function LoginPage() {
             </p>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
