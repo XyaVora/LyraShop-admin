@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -59,6 +60,18 @@ export default function OrderListPage() {
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
+        <ExportCsvButton
+          filename="lyra-orders.csv"
+          rows={list.allRows}
+          columns={[
+            { header: "id", value: (row) => row.id },
+            { header: "totalAmount", value: (row) => row.totalAmount },
+            { header: "status", value: (row) => row.status },
+            { header: "paymentStatus", value: (row) => row.paymentStatus },
+            { header: "shippingPhone", value: (row) => row.shippingPhone },
+            { header: "createdAt", value: (row) => row.createdAt }
+          ]}
+        />
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {query.isLoading ? <SkeletonBlock rows={6} /> : (

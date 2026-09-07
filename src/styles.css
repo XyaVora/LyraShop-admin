@@ -264,8 +264,48 @@ a:hover {
 .app-toast-danger { background: #b42318; }
 .app-toast-info { background: #175cd3; }
 
+.confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  display: grid;
+  place-items: center;
+  background: rgba(28, 25, 23, 0.45);
+  padding: 1rem;
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .admin-shell {
     grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 248px;
+    z-index: 1040;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .admin-sidebar.is-open {
+    transform: none;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    background: rgba(28, 25, 23, 0.45);
+    z-index: 1030;
   }
 }

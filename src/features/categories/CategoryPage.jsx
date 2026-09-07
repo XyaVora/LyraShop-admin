@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import ConfirmModal from "../../components/common/ConfirmModal.jsx";
+import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -29,6 +31,7 @@ export default function CategoryPage() {
   const pushToast = useToastStore((state) => state.push);
   const [problem, setProblem] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [pendingHide, setPendingHide] = useState(null);
   const query = useQuery({
     queryKey: ["public", "categories"],
     queryFn: adminApi.listPublicCategories
@@ -134,8 +137,18 @@ export default function CategoryPage() {
         <div className="col-lg-7">
           <div className="card">
             <div className="card-body">
-              <div className="mb-3">
+              <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
                 <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm danh mục..." />
+                <ExportCsvButton
+                  filename="lyra-categories.csv"
+                  rows={list.allRows}
+                  columns={[
+                    { header: "id", value: (row) => row.id },
+                    { header: "name", value: (row) => row.name },
+                    { header: "slug", value: (row) => row.slug },
+                    { header: "parentId", value: (row) => row.parentId }
+                  ]}
+                />
               </div>
               {query.isLoading ? <SkeletonBlock /> : (
                 <>
@@ -173,7 +186,7 @@ export default function CategoryPage() {
                           <button
                             type="button"
                             className="btn btn-outline-danger"
-                            onClick={() => deactivate.mutate(row.id)}
+                            onClick={() => setPendingHide(row)}
                           >
                             Ẩn
                           </button>
@@ -196,6 +209,18 @@ export default function CategoryPage() {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        open={Boolean(pendingHide)}
+        title="Ẩn danh mục"
+        message={`"${pendingHide?.name || ""}" sẽ biến khỏi GET /api/v1/categories. Backend chưa có API hiện lại.`}
+        confirmLabel="Ẩn"
+        danger
+        onCancel={() => setPendingHide(null)}
+        onConfirm={() => {
+          deactivate.mutate(pendingHide.id);
+          setPendingHide(null);
+        }}
+      />
     </div>
   );
 }

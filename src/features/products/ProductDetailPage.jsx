@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
+import ConfirmModal from "../../components/common/ConfirmModal.jsx";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -19,6 +20,7 @@ export default function ProductDetailPage() {
   const [sessionVariants, setSessionVariants] = useState([]);
   const [sessionImages, setSessionImages] = useState([]);
   const [problem, setProblem] = useState(null);
+  const [pendingReview, setPendingReview] = useState(null);
   const pushToast = useToastStore((state) => state.push);
   const products = useQuery({
     queryKey: ["admin", "products"],
@@ -183,12 +185,7 @@ export default function ProductDetailPage() {
                       type="button"
                       className="btn btn-outline-danger btn-sm"
                       disabled={deleteReview.isPending}
-                      onClick={() => {
-                        if (window.confirm("Xóa đánh giá này?")) {
-                          setProblem(null);
-                          deleteReview.mutate(row.id);
-                        }
-                      }}
+                      onClick={() => setPendingReview(row)}
                     >
                       Xóa
                     </button>
@@ -348,6 +345,19 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        open={Boolean(pendingReview)}
+        title="Xóa đánh giá"
+        message="Đánh giá sẽ bị xóa khỏi sản phẩm. Không hoàn tác được."
+        confirmLabel="Xóa"
+        danger
+        onCancel={() => setPendingReview(null)}
+        onConfirm={() => {
+          setProblem(null);
+          deleteReview.mutate(pendingReview.id);
+          setPendingReview(null);
+        }}
+      />
     </div>
   );
 }

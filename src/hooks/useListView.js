@@ -64,6 +64,7 @@ export function useListView(rows, {
     total: pageState.total,
     totalPages: pageState.totalPages,
     rows: pageState.rows,
+    allRows: sorted,
     setPage,
     setPageSize
   };

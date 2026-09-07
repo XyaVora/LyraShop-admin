@@ -2,6 +2,8 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import ConfirmModal from "../../components/common/ConfirmModal.jsx";
+import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -17,6 +19,7 @@ export default function ReviewListPage() {
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.push);
   const [ratingFilter, setRatingFilter] = useState("all");
+  const [pendingReview, setPendingReview] = useState(null);
   const query = useQuery({
     queryKey: ["admin", "reviews"],
     queryFn: adminApi.listReviews
@@ -60,6 +63,18 @@ export default function ReviewListPage() {
             <option key={rating} value={rating}>{rating} sao</option>
           ))}
         </select>
+        <ExportCsvButton
+          filename="lyra-reviews.csv"
+          rows={list.allRows}
+          columns={[
+            { header: "id", value: (row) => row.id },
+            { header: "productId", value: (row) => row.productId },
+            { header: "userId", value: (row) => row.userId },
+            { header: "rating", value: (row) => row.rating },
+            { header: "comment", value: (row) => row.comment },
+            { header: "createdAt", value: (row) => row.createdAt }
+          ]}
+        />
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
@@ -92,11 +107,7 @@ export default function ReviewListPage() {
                       type="button"
                       className="btn btn-outline-danger btn-sm"
                       disabled={mutation.isPending}
-                      onClick={() => {
-                        if (window.confirm("Xóa đánh giá này?")) {
-                          mutation.mutate(row.id);
-                        }
-                      }}
+                      onClick={() => setPendingReview(row)}
                     >
                       Xóa
                     </button>
@@ -115,6 +126,18 @@ export default function ReviewListPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={Boolean(pendingReview)}
+        title="Xóa đánh giá"
+        message="Đánh giá sẽ bị xóa khỏi sản phẩm. Không hoàn tác được."
+        confirmLabel="Xóa"
+        danger
+        onCancel={() => setPendingReview(null)}
+        onConfirm={() => {
+          mutation.mutate(pendingReview.id);
+          setPendingReview(null);
+        }}
+      />
     </div>
   );
 }

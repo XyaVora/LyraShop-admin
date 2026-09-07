@@ -2,6 +2,8 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
+import ConfirmModal from "../../components/common/ConfirmModal.jsx";
+import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
@@ -20,6 +22,7 @@ export default function UserListPage() {
   const subject = useAuthStore((state) => state.subject);
   const pushToast = useToastStore((state) => state.push);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [pendingUser, setPendingUser] = useState(null);
   const query = useQuery({
     queryKey: ["admin", "users"],
     queryFn: adminApi.listUsers
@@ -61,6 +64,18 @@ export default function UserListPage() {
           <option value="ADMIN">Quản trị</option>
           <option value="CUSTOMER">Khách</option>
         </select>
+        <ExportCsvButton
+          filename="lyra-users.csv"
+          rows={list.allRows}
+          columns={[
+            { header: "id", value: (row) => row.id },
+            { header: "email", value: (row) => row.email },
+            { header: "fullName", value: (row) => row.fullName },
+            { header: "phone", value: (row) => row.phone },
+            { header: "role", value: (row) => row.role },
+            { header: "active", value: (row) => row.active }
+          ]}
+        />
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
@@ -106,7 +121,7 @@ export default function UserListPage() {
                         type="button"
                         className="btn btn-outline-secondary btn-sm"
                         disabled={isSelf || mutation.isPending}
-                        onClick={() => mutation.mutate({ id: row.id, active: !row.active })}
+                        onClick={() => setPendingUser(row)}
                       >
                         {row.active ? "Khóa" : "Mở"}
                       </button>
@@ -126,6 +141,20 @@ export default function UserListPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={Boolean(pendingUser)}
+        title={pendingUser?.active ? "Khóa tài khoản" : "Mở tài khoản"}
+        message={pendingUser?.active
+          ? `${pendingUser?.email || ""} sẽ không đăng nhập được.`
+          : `Mở lại ${pendingUser?.email || ""}.`}
+        confirmLabel={pendingUser?.active ? "Khóa" : "Mở"}
+        danger={Boolean(pendingUser?.active)}
+        onCancel={() => setPendingUser(null)}
+        onConfirm={() => {
+          mutation.mutate({ id: pendingUser.id, active: !pendingUser.active });
+          setPendingUser(null);
+        }}
+      />
     </div>
   );
 }
