@@ -66,6 +66,35 @@ export function updateUserStatusBody(active) {
   return { active: Boolean(active) };
 }
 
+export function updateUserRoleBody(role) {
+  return { role: String(role).trim() };
+}
+
+export function updateProductBody(input) {
+  const body = {
+    name: String(input.name).trim(),
+    slug: String(input.slug).trim().toLowerCase(),
+    basePrice: input.basePrice,
+    categoryId: Number(input.categoryId),
+    version: Number(input.version)
+  };
+  const description = optionalText(input.description);
+  if (description !== undefined) {
+    body.description = description;
+  }
+  return body;
+}
+
+export function updateVariantBody(input) {
+  return {
+    sku: String(input.sku).trim(),
+    size: String(input.size).trim(),
+    color: String(input.color).trim(),
+    price: input.price,
+    version: Number(input.version)
+  };
+}
+
 export function createVariantBody(input) {
   return {
     sku: String(input.sku).trim(),
@@ -124,7 +153,12 @@ export function adminEndpoints() {
   return {
     dashboard: { method: "GET", path: "/api/v1/admin/dashboard" },
     products: { method: "GET", path: "/api/v1/admin/products" },
+    product: (id) => ({ method: "GET", path: `/api/v1/admin/products/${id}` }),
     createProduct: { method: "POST", path: "/api/v1/admin/products" },
+    updateProduct: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/products/${id}`
+    }),
     activateProduct: (id) => ({
       method: "PATCH",
       path: `/api/v1/admin/products/${id}/activate`
@@ -133,6 +167,7 @@ export function adminEndpoints() {
       method: "PATCH",
       path: `/api/v1/admin/products/${id}/deactivate`
     }),
+    categories: { method: "GET", path: "/api/v1/admin/categories" },
     createCategory: { method: "POST", path: "/api/v1/admin/categories" },
     updateCategory: (id) => ({
       method: "PUT",
@@ -141,6 +176,10 @@ export function adminEndpoints() {
     deactivateCategory: (id) => ({
       method: "PATCH",
       path: `/api/v1/admin/categories/${id}/deactivate`
+    }),
+    activateCategory: (id) => ({
+      method: "PATCH",
+      path: `/api/v1/admin/categories/${id}/activate`
     }),
     orders: { method: "GET", path: "/api/v1/admin/orders" },
     order: (id) => ({ method: "GET", path: `/api/v1/admin/orders/${id}` }),
@@ -153,6 +192,10 @@ export function adminEndpoints() {
       method: "PUT",
       path: `/api/v1/admin/users/${id}/status`
     }),
+    updateUserRole: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/users/${id}/role`
+    }),
     reviews: { method: "GET", path: "/api/v1/admin/reviews" },
     deleteReview: (id) => ({
       method: "DELETE",
@@ -162,9 +205,17 @@ export function adminEndpoints() {
       method: "POST",
       path: `/api/v1/admin/products/${productId}/variants`
     }),
+    updateVariant: (productId, variantId) => ({
+      method: "PUT",
+      path: `/api/v1/admin/products/${productId}/variants/${variantId}`
+    }),
     deactivateVariant: (productId, variantId) => ({
       method: "PATCH",
       path: `/api/v1/admin/products/${productId}/variants/${variantId}/deactivate`
+    }),
+    activateVariant: (productId, variantId) => ({
+      method: "PATCH",
+      path: `/api/v1/admin/products/${productId}/variants/${variantId}/activate`
     }),
     adjustInventory: (productId, variantId) => ({
       method: "PATCH",

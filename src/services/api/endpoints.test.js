@@ -10,7 +10,10 @@ import {
   nextOrderStatus,
   publicEndpoints,
   updateOrderStatusBody,
-  updateUserStatusBody
+  updateProductBody,
+  updateUserRoleBody,
+  updateUserStatusBody,
+  updateVariantBody
 } from "./endpoints.js";
 
 describe("auth and admin endpoint mapping", () => {
@@ -27,7 +30,10 @@ describe("auth and admin endpoint mapping", () => {
     const admin = adminEndpoints();
     expect(admin.dashboard).toEqual({ method: "GET", path: "/api/v1/admin/dashboard" });
     expect(admin.products).toEqual({ method: "GET", path: "/api/v1/admin/products" });
+    expect(admin.product("p1")).toEqual({ method: "GET", path: "/api/v1/admin/products/p1" });
     expect(admin.createProduct).toEqual({ method: "POST", path: "/api/v1/admin/products" });
+    expect(admin.updateProduct("p1")).toEqual({ method: "PUT", path: "/api/v1/admin/products/p1" });
+    expect(admin.categories).toEqual({ method: "GET", path: "/api/v1/admin/categories" });
     expect(admin.activateProduct("p1")).toEqual({
       method: "PATCH",
       path: "/api/v1/admin/products/p1/activate"
@@ -42,6 +48,10 @@ describe("auth and admin endpoint mapping", () => {
       method: "PATCH",
       path: "/api/v1/admin/categories/9/deactivate"
     });
+    expect(admin.activateCategory(9)).toEqual({
+      method: "PATCH",
+      path: "/api/v1/admin/categories/9/activate"
+    });
     expect(admin.orders).toEqual({ method: "GET", path: "/api/v1/admin/orders" });
     expect(admin.order("o1")).toEqual({ method: "GET", path: "/api/v1/admin/orders/o1" });
     expect(admin.updateOrderStatus("o1")).toEqual({
@@ -53,8 +63,20 @@ describe("auth and admin endpoint mapping", () => {
       method: "PUT",
       path: "/api/v1/admin/users/u1/status"
     });
+    expect(admin.updateUserRole("u1")).toEqual({
+      method: "PUT",
+      path: "/api/v1/admin/users/u1/role"
+    });
     expect(admin.reviews).toEqual({ method: "GET", path: "/api/v1/admin/reviews" });
     expect(admin.deleteReview(3)).toEqual({ method: "DELETE", path: "/api/v1/admin/reviews/3" });
+    expect(admin.updateVariant("p1", "v1")).toEqual({
+      method: "PUT",
+      path: "/api/v1/admin/products/p1/variants/v1"
+    });
+    expect(admin.activateVariant("p1", "v1")).toEqual({
+      method: "PATCH",
+      path: "/api/v1/admin/products/p1/variants/v1/activate"
+    });
     expect(publicEndpoints().categories).toEqual({ method: "GET", path: "/api/v1/categories" });
     expect(publicEndpoints().product("p1")).toEqual({
       method: "GET",
@@ -106,6 +128,37 @@ describe("auth and admin endpoint mapping", () => {
 
     expect(updateOrderStatusBody(" CONFIRMED ")).toEqual({ status: "CONFIRMED" });
     expect(updateUserStatusBody(1)).toEqual({ active: true });
+    expect(updateUserRoleBody(" ADMIN ")).toEqual({ role: "ADMIN" });
+    expect(updateProductBody({
+      name: " Ao ",
+      slug: "Ao-Thun",
+      description: "cotton",
+      basePrice: 199000,
+      categoryId: "4",
+      version: "2",
+      extra: true
+    })).toEqual({
+      name: "Ao",
+      slug: "ao-thun",
+      description: "cotton",
+      basePrice: 199000,
+      categoryId: 4,
+      version: 2
+    });
+    expect(updateVariantBody({
+      sku: "SKU-1",
+      size: "M",
+      color: "Black",
+      price: 10,
+      version: "3",
+      stock: 9
+    })).toEqual({
+      sku: "SKU-1",
+      size: "M",
+      color: "Black",
+      price: 10,
+      version: 3
+    });
     expect(createVariantBody({
       sku: "SKU-1",
       size: "M",

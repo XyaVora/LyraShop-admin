@@ -9,7 +9,10 @@ import {
   publicEndpoints,
   updateCategoryBody,
   updateOrderStatusBody,
-  updateUserStatusBody
+  updateProductBody,
+  updateUserRoleBody,
+  updateUserStatusBody,
+  updateVariantBody
 } from "./endpoints.js";
 
 const admin = adminEndpoints();
@@ -22,14 +25,23 @@ export const adminApi = {
   listProducts() {
     return requestEndpoint(admin.products).then((res) => res.data);
   },
+  getProduct(id) {
+    return requestEndpoint(admin.product(id)).then((res) => res.data);
+  },
   createProduct(input) {
     return requestEndpoint(admin.createProduct, createProductBody(input)).then((res) => res.data);
+  },
+  updateProduct(id, input) {
+    return requestEndpoint(admin.updateProduct(id), updateProductBody(input)).then((res) => res.data);
   },
   activateProduct(id) {
     return requestEndpoint(admin.activateProduct(id)).then((res) => res.data);
   },
   deactivateProduct(id) {
     return requestEndpoint(admin.deactivateProduct(id)).then((res) => res.data);
+  },
+  listCategories() {
+    return requestEndpoint(admin.categories).then((res) => res.data);
   },
   listPublicCategories() {
     return requestEndpoint(published.categories).then((res) => res.data);
@@ -49,6 +61,9 @@ export const adminApi = {
   deactivateCategory(id) {
     return requestEndpoint(admin.deactivateCategory(id)).then((res) => res.data);
   },
+  activateCategory(id) {
+    return requestEndpoint(admin.activateCategory(id)).then((res) => res.data);
+  },
   listOrders() {
     return requestEndpoint(admin.orders).then((res) => res.data);
   },
@@ -64,6 +79,9 @@ export const adminApi = {
   updateUserStatus(id, active) {
     return requestEndpoint(admin.updateUserStatus(id), updateUserStatusBody(active)).then((res) => res.data);
   },
+  updateUserRole(id, role) {
+    return requestEndpoint(admin.updateUserRole(id), updateUserRoleBody(role)).then((res) => res.data);
+  },
   listReviews() {
     return requestEndpoint(admin.reviews).then((res) => res.data);
   },
@@ -73,8 +91,17 @@ export const adminApi = {
   createVariant(productId, input) {
     return requestEndpoint(admin.createVariant(productId), createVariantBody(input)).then((res) => res.data);
   },
+  updateVariant(productId, variantId, input) {
+    return requestEndpoint(
+      admin.updateVariant(productId, variantId),
+      updateVariantBody(input)
+    ).then((res) => res.data);
+  },
   deactivateVariant(productId, variantId) {
     return requestEndpoint(admin.deactivateVariant(productId, variantId)).then((res) => res.data);
+  },
+  activateVariant(productId, variantId) {
+    return requestEndpoint(admin.activateVariant(productId, variantId)).then((res) => res.data);
   },
   adjustInventory(productId, variantId, input) {
     return requestEndpoint(

@@ -1,4 +1,3 @@
-import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
@@ -14,34 +13,38 @@ import { formatDateTime, formatMoney } from "../../utils/format.js";
 import { parseApiError } from "../../services/api/errors.js";
 import { activeClass } from "../../utils/status.js";
 import { useToastStore } from "../../store/toastStore.js";
+import { useEffect, useMemo, useState } from "react";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const [sessionVariants, setSessionVariants] = useState([]);
-  const [sessionImages, setSessionImages] = useState([]);
   const [problem, setProblem] = useState(null);
   const [pendingReview, setPendingReview] = useState(null);
   const pushToast = useToastStore((state) => state.push);
-  const products = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: adminApi.listProducts
+
+  const productQuery = useQuery({
+    queryKey: ["admin", "products", id],
+    queryFn: () => adminApi.getProduct(id)
   });
-  const product = useMemo(
-    () => (products.data || []).find((item) => item.id === id),
-    [products.data, id]
-  );
-  const catalog = useQuery({
-    queryKey: ["public", "products", id],
-    queryFn: () => adminApi.getPublicProduct(id),
-    enabled: Boolean(product?.active)
+  const categories = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: adminApi.listCategories
   });
-  const reviews = useQuery({
-    queryKey: ["public", "products", id, "reviews"],
-    queryFn: () => adminApi.listProductReviews(id),
-    enabled: Boolean(product?.active)
+  const reviewsQuery = useQuery({
+    queryKey: ["admin", "reviews"],
+    queryFn: adminApi.listReviews
   });
 
+  const product = productQuery.data;
+  const reviews = useMemo(
+    () => (reviewsQuery.data || []).filter((row) => String(row.productId) === String(id)),
+    [reviewsQuery.data, id]
+  );
+
+  const productForm = useForm({
+    defaultValues: { name: "", slug: "", description: "", basePrice: 0, categoryId: "" }
+  });
+  const { reset: resetProductForm } = productForm;
   const variantForm = useForm({
     defaultValues: { sku: "", size: "", color: "", price: 0, stock: 0 }
   });
@@ -49,13 +52,69 @@ export default function ProductDetailPage() {
     defaultValues: { url: "", primary: false, sortOrder: 0, variantId: "" }
   });
 
+  useEffect(() => {
+    if (!productQuery.data) {
+      return;
+    }
+    const detail = productQuery.data;
+    resetProductForm({
+      name: detail.name || "",
+      slug: detail.slug || "",
+      description: detail.description || "",
+      basePrice: Number(detail.basePrice) || 0,
+      categoryId: detail.categoryId ? String(detail.categoryId) : ""
+    });
+  }, [productQuery.data, resetProductForm]);
+
+  function invalidateProduct() {
+    queryClient.invalidateQueries({ queryKey: ["admin", "products", id] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+  }
+
+  const updateProduct = useMutation({
+    mutationFn: (values) => adminApi.updateProduct(id, {
+      ...values,
+      version: product.version
+    }),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã cập nhật sản phẩm");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
   const createVariant = useMutation({
     mutationFn: (values) => adminApi.createVariant(id, values),
-    onSuccess: (created) => {
-      setSessionVariants((current) => [created, ...current]);
+    onSuccess: () => {
       variantForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
+      invalidateProduct();
       pushToast("Đã tạo biến thể");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const updateVariant = useMutation({
+    mutationFn: ({ variantId, values }) => adminApi.updateVariant(id, variantId, values),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã sửa biến thể");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const toggleVariant = useMutation({
+    mutationFn: ({ variantId, active }) => (
+      active ? adminApi.deactivateVariant(id, variantId) : adminApi.activateVariant(id, variantId)
+    ),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã cập nhật biến thể");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const adjust = useMutation({
+    mutationFn: ({ variantId, stock, version }) =>
+      adminApi.adjustInventory(id, variantId, { stock, version }),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã cập nhật tồn");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
@@ -66,10 +125,9 @@ export default function ProductDetailPage() {
       sortOrder: Number(values.sortOrder),
       variantId: values.variantId || undefined
     }),
-    onSuccess: (created) => {
-      setSessionImages((current) => [created, ...current]);
+    onSuccess: () => {
       imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
-      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
+      invalidateProduct();
       pushToast("Đã thêm ảnh");
     },
     onError: (error) => setProblem(parseApiError(error))
@@ -77,32 +135,17 @@ export default function ProductDetailPage() {
   const deleteReview = useMutation({
     mutationFn: adminApi.deleteReview,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public", "products", id, "reviews"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "products", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
       pushToast("Đã xóa đánh giá");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
-  const adjust = useMutation({
-    mutationFn: ({ variantId, stock, version }) =>
-      adminApi.adjustInventory(id, variantId, { stock, version }),
-    onSuccess: async (updated) => {
-      setSessionVariants((current) => current.map((item) => (
-        item.id === updated.variantId
-          ? { ...item, stock: updated.stock, version: updated.version }
-          : item
-      )));
-      await queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-    },
-    onError: (error) => setProblem(parseApiError(error))
-  });
 
-  if (products.isLoading) {
+  if (productQuery.isLoading) {
     return <SkeletonBlock rows={8} />;
   }
-  if (products.isError) {
-    return <ErrorAlert error={products.error} />;
+  if (productQuery.isError) {
+    return <ErrorAlert error={productQuery.error} />;
   }
   if (!product) {
     return (
@@ -110,7 +153,7 @@ export default function ProductDetailPage() {
         problem={{
           status: 404,
           code: "PRODUCT_NOT_FOUND",
-          message: "Không tìm thấy sản phẩm trong danh sách quản trị. Backend chưa có GET theo id.",
+          message: "Không tìm thấy sản phẩm.",
           fieldErrors: {}
         }}
       />
@@ -126,7 +169,7 @@ export default function ProductDetailPage() {
           { label: "Sản phẩm", to: "/products" },
           { label: product.name }
         ]}
-        description={`${product.slug} · ${formatMoney(product.basePrice)}`}
+        description={`${product.slug} · ${formatMoney(product.basePrice)} · version ${product.version}`}
         actions={(
           <StatusBadge
             className={activeClass(product.active)}
@@ -135,36 +178,54 @@ export default function ProductDetailPage() {
         )}
       />
       <OperatorNote>
-        Backend chưa có GET quản trị theo id nên trang này lấy sản phẩm từ danh sách. Catalog và đánh giá công khai 404 nếu sản phẩm ẩn. Tồn kho chỉ sửa được khi phản hồi tạo biến thể trả về version.
+        Sửa sản phẩm và tồn kho cần version hiện tại. PUT sản phẩm không trả version mới nên trang tải lại chi tiết sau mỗi lần lưu.
       </OperatorNote>
       <ErrorAlert problem={problem} />
-      {product.active && catalog.isError && (
-        <p className="small text-secondary">
-          Catalog công khai không trả sản phẩm này (ẩn khỏi khách hoặc thiếu biến thể đang bán).
-        </p>
-      )}
-      {!product.active && (
-        <p className="small text-secondary">
-          Sản phẩm đang ẩn nên catalog công khai không trả chi tiết.
-        </p>
-      )}
 
       <div className="card mb-4">
         <div className="card-body">
-          <h2 className="h6">Đánh giá trên catalog công khai</h2>
-          {!product.active ? (
-            <p className="small text-secondary mb-0">
-              Sản phẩm đang ẩn. GET /api/v1/products/{"{id}"}/reviews trả 404 nếu sản phẩm không active.
-            </p>
-          ) : reviews.isLoading ? (
-            <SkeletonBlock rows={4} />
-          ) : reviews.isError ? (
-            <p className="small text-secondary mb-0">
-              Không tải được đánh giá công khai (sản phẩm ẩn khỏi khách hoặc catalog không trả sản phẩm).
-            </p>
-          ) : (
+          <h2 className="h6">Sửa sản phẩm</h2>
+          <form
+            onSubmit={productForm.handleSubmit((values) => {
+              setProblem(null);
+              updateProduct.mutate(values);
+            })}
+          >
+            <div className="row g-2">
+              <div className="col-md-6">
+                <input className="form-control" placeholder="Tên" {...productForm.register("name", { required: true })} />
+              </div>
+              <div className="col-md-6">
+                <input className="form-control" placeholder="Slug" {...productForm.register("slug", { required: true })} />
+              </div>
+              <div className="col-md-4">
+                <input className="form-control" type="number" step="0.01" {...productForm.register("basePrice", { valueAsNumber: true })} />
+              </div>
+              <div className="col-md-8">
+                <select className="form-select" {...productForm.register("categoryId", { required: true })}>
+                  <option value="">Danh mục</option>
+                  {(categories.data || []).filter((item) => item.active !== false).map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-12">
+                <textarea className="form-control" rows={2} placeholder="Mô tả" {...productForm.register("description")} />
+              </div>
+            </div>
+            <button className="btn btn-lyra btn-sm mt-3" type="submit" disabled={updateProduct.isPending}>
+              Lưu sản phẩm
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div className="card mb-4">
+        <div className="card-body">
+          <h2 className="h6">Đánh giá</h2>
+          {reviewsQuery.isLoading ? <SkeletonBlock rows={4} /> : (
             <DataTable
-              rows={reviews.data || []}
+              rows={reviews}
               rowKey={(row) => row.id}
               emptyTitle="Chưa có đánh giá"
               emptyDescription="Khách chỉ gửi được đánh giá sau khi đơn giao thành công."
@@ -201,68 +262,13 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {catalog.data && (
-        <div className="card mb-4">
-          <div className="card-body">
-            <h2 className="h6">Catalog đang hiện với khách</h2>
-            {catalog.data.averageRating != null && (
-              <p className="small text-secondary mb-3">
-                Điểm trung bình {catalog.data.averageRating} · {catalog.data.reviewCount} đánh giá
-              </p>
-            )}
-            <div className="row g-3">
-              <div className="col-lg-7">
-                <h3 className="h6">Biến thể đang bán</h3>
-                {(catalog.data.variants || []).length === 0 ? (
-                  <p className="small text-secondary mb-0">Chưa có biến thể đang hiện.</p>
-                ) : (
-                  <ul className="list-group list-group-flush">
-                    {catalog.data.variants.map((variant) => (
-                      <li className="list-group-item px-0 d-flex justify-content-between" key={variant.id}>
-                        <span>{variant.sku} · {variant.size} / {variant.color}</span>
-                        <span className="text-secondary">
-                          {formatMoney(variant.price)} · tồn {variant.stock}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div className="col-lg-5">
-                <h3 className="h6">Ảnh</h3>
-                {(catalog.data.images || []).length === 0 ? (
-                  <p className="small text-secondary mb-0">Chưa có ảnh trên catalog.</p>
-                ) : (
-                  <div className="d-flex flex-wrap gap-2">
-                    {catalog.data.images.map((image) => (
-                      <a
-                        key={image.id}
-                        href={image.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="small"
-                      >
-                        {image.primary ? "Ảnh chính" : `Ảnh #${image.sortOrder}`}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="row g-4">
-        <div className="col-lg-6">
+        <div className="col-lg-7">
           <div className="card">
             <div className="card-body">
-              <h2 className="h6">Tạo biến thể / SKU / tồn kho</h2>
-              <p className="small text-secondary">
-                Backend không trả danh sách biến thể cho quản trị. Form này dùng POST tạo mới;
-                tồn kho chỉ sửa được khi phản hồi trả về version.
-              </p>
+              <h2 className="h6">Biến thể</h2>
               <form
+                className="mb-3"
                 onSubmit={variantForm.handleSubmit((values) => {
                   setProblem(null);
                   createVariant.mutate(values);
@@ -289,39 +295,80 @@ export default function ProductDetailPage() {
                   Tạo biến thể
                 </button>
               </form>
-              <ul className="list-group list-group-flush mt-3">
-                {sessionVariants.map((variant) => (
-                  <li className="list-group-item px-0" key={variant.id}>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <div className="fw-semibold">{variant.sku}</div>
-                        <div className="small text-secondary">
-                          {variant.size} / {variant.color} · {formatMoney(variant.price)} · tồn {variant.stock}
+              {(product.variants || []).length === 0 ? (
+                <p className="small text-secondary mb-0">Chưa có biến thể.</p>
+              ) : (
+                <ul className="list-group list-group-flush">
+                  {(product.variants || []).map((variant) => (
+                    <li className="list-group-item px-0" key={variant.id}>
+                      <div className="d-flex justify-content-between gap-3 flex-wrap">
+                        <div>
+                          <div className="fw-semibold">{variant.sku}</div>
+                          <div className="small text-secondary">
+                            {variant.size} / {variant.color} · {formatMoney(variant.price)} · version {variant.version}
+                          </div>
+                          <StatusBadge
+                            className={activeClass(variant.active)}
+                            label={variant.active ? "Hiện" : "Ẩn"}
+                          />
+                        </div>
+                        <div className="d-flex flex-column gap-2">
+                          <form
+                            className="d-flex gap-2"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const stock = Number(new FormData(event.currentTarget).get("stock"));
+                              setProblem(null);
+                              adjust.mutate({ variantId: variant.id, stock, version: variant.version });
+                            }}
+                          >
+                            <input name="stock" type="number" min="0" className="form-control form-control-sm" defaultValue={variant.stock} />
+                            <button className="btn btn-outline-secondary btn-sm" type="submit">Tồn</button>
+                          </form>
+                          <form
+                            className="d-flex flex-wrap gap-2"
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const data = new FormData(event.currentTarget);
+                              setProblem(null);
+                              updateVariant.mutate({
+                                variantId: variant.id,
+                                values: {
+                                  sku: data.get("sku"),
+                                  size: data.get("size"),
+                                  color: data.get("color"),
+                                  price: Number(data.get("price")),
+                                  version: variant.version
+                                }
+                              });
+                            }}
+                          >
+                            <input name="sku" className="form-control form-control-sm" defaultValue={variant.sku} style={{ width: 110 }} />
+                            <input name="size" className="form-control form-control-sm" defaultValue={variant.size} style={{ width: 64 }} />
+                            <input name="color" className="form-control form-control-sm" defaultValue={variant.color} style={{ width: 80 }} />
+                            <input name="price" type="number" step="0.01" className="form-control form-control-sm" defaultValue={variant.price} style={{ width: 90 }} />
+                            <button className="btn btn-outline-secondary btn-sm" type="submit">Lưu</button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary btn-sm"
+                              onClick={() => toggleVariant.mutate({ variantId: variant.id, active: variant.active })}
+                            >
+                              {variant.active ? "Ẩn" : "Hiện"}
+                            </button>
+                          </form>
                         </div>
                       </div>
-                      <form
-                        className="d-flex gap-2"
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          const stock = Number(new FormData(event.currentTarget).get("stock"));
-                          setProblem(null);
-                          adjust.mutate({ variantId: variant.id, stock, version: variant.version });
-                        }}
-                      >
-                        <input name="stock" type="number" min="0" className="form-control form-control-sm" defaultValue={variant.stock} />
-                        <button className="btn btn-outline-secondary btn-sm" type="submit">Cập nhật tồn</button>
-                      </form>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>
-        <div className="col-lg-6">
+        <div className="col-lg-5">
           <div className="card">
             <div className="card-body">
-              <h2 className="h6">Ảnh sản phẩm (HTTPS URL)</h2>
+              <h2 className="h6">Ảnh (HTTPS URL)</h2>
               <form
                 onSubmit={imageForm.handleSubmit((values) => {
                   setProblem(null);
@@ -334,14 +381,22 @@ export default function ProductDetailPage() {
                   <label className="form-check-label" htmlFor="primary">Ảnh chính</label>
                 </div>
                 <input className="form-control mb-2" type="number" min="0" {...imageForm.register("sortOrder")} />
+                <select className="form-select mb-2" {...imageForm.register("variantId")}>
+                  <option value="">Không gắn biến thể</option>
+                  {(product.variants || []).map((variant) => (
+                    <option key={variant.id} value={variant.id}>{variant.sku}</option>
+                  ))}
+                </select>
                 <button className="btn btn-lyra btn-sm" type="submit" disabled={createImage.isPending}>
                   Thêm ảnh
                 </button>
               </form>
               <ul className="list-group list-group-flush mt-3">
-                {sessionImages.map((image) => (
+                {(product.images || []).map((image) => (
                   <li className="list-group-item px-0 small" key={image.id}>
-                    {image.url}
+                    <a href={image.url} target="_blank" rel="noreferrer">
+                      {image.primary ? "Ảnh chính" : `Ảnh #${image.sortOrder}`}
+                    </a>
                   </li>
                 ))}
               </ul>

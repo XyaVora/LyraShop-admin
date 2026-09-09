@@ -23,6 +23,7 @@ export default function UserListPage() {
   const pushToast = useToastStore((state) => state.push);
   const [roleFilter, setRoleFilter] = useState("all");
   const [pendingUser, setPendingUser] = useState(null);
+  const [pendingRole, setPendingRole] = useState(null);
   const query = useQuery({
     queryKey: ["admin", "users"],
     queryFn: adminApi.listUsers
@@ -32,6 +33,13 @@ export default function UserListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       pushToast("Đã cập nhật tài khoản");
+    }
+  });
+  const roleMutation = useMutation({
+    mutationFn: ({ id, role }) => adminApi.updateUserRole(id, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      pushToast("Đã đổi vai trò");
     }
   });
   const extraFilter = useCallback((row) => (
@@ -48,7 +56,7 @@ export default function UserListPage() {
       <PageHeader
         title="Tài khoản"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài khoản" }]}
-        description="Không khóa được chính mình. Đăng ký luôn tạo khách; không có form tạo quản trị trên admin này."
+        description="Không khóa được chính mình. Đổi vai trò dùng PUT /role; không hạ được admin cuối (409 LAST_ADMIN)."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm email, tên, SĐT..." />
@@ -80,6 +88,7 @@ export default function UserListPage() {
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
+      {roleMutation.isError && <ErrorAlert error={roleMutation.error} />}
       {query.isLoading ? <SkeletonBlock rows={6} /> : (
         <div className="card">
           <div className="card-body p-0">
@@ -118,14 +127,24 @@ export default function UserListPage() {
                   render: (row) => {
                     const isSelf = row.id === subject;
                     return (
-                      <button
-                        type="button"
-                        className="btn btn-outline-secondary btn-sm"
-                        disabled={isSelf || mutation.isPending}
-                        onClick={() => setPendingUser(row)}
-                      >
-                        {row.active ? "Khóa" : "Mở"}
-                      </button>
+                      <div className="d-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={isSelf || mutation.isPending}
+                          onClick={() => setPendingUser(row)}
+                        >
+                          {row.active ? "Khóa" : "Mở"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          disabled={roleMutation.isPending}
+                          onClick={() => setPendingRole(row)}
+                        >
+                          {row.role === "ADMIN" ? "Thành khách" : "Thành admin"}
+                        </button>
+                      </div>
                     );
                   }
                 }
@@ -154,6 +173,23 @@ export default function UserListPage() {
         onConfirm={() => {
           mutation.mutate({ id: pendingUser.id, active: !pendingUser.active });
           setPendingUser(null);
+        }}
+      />
+      <ConfirmModal
+        open={Boolean(pendingRole)}
+        title="Đổi vai trò"
+        message={pendingRole?.role === "ADMIN"
+          ? `Hạ ${pendingRole?.email || ""} xuống khách.`
+          : `Nâng ${pendingRole?.email || ""} thành quản trị.`}
+        confirmLabel="Đổi"
+        danger={pendingRole?.role === "ADMIN"}
+        onCancel={() => setPendingRole(null)}
+        onConfirm={() => {
+          roleMutation.mutate({
+            id: pendingRole.id,
+            role: pendingRole.role === "ADMIN" ? "CUSTOMER" : "ADMIN"
+          });
+          setPendingRole(null);
         }}
       />
     </div>
