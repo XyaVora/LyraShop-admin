@@ -15,7 +15,8 @@ export const PAYMENT_STATUS_LABEL = {
 };
 
 export const PAYMENT_METHOD_LABEL = {
-  COD: "Thu hộ (COD)"
+  COD: "Thu hộ (COD)",
+  VNPAY: "VNPay"
 };
 
 export function orderStatusClass(status) {

@@ -1,4 +1,4 @@
-import { requestEndpoint } from "./client.js";
+import { api, requestEndpoint } from "./client.js";
 import {
   adjustInventoryBody,
   adminEndpoints,
@@ -112,5 +112,15 @@ export const adminApi = {
   createProductImage(productId, input) {
     return requestEndpoint(admin.createProductImage(productId), createProductImageBody(input))
       .then((res) => res.data);
+  },
+  createProductImageFile(productId, input) {
+    const form = new FormData();
+    form.append("file", input.file);
+    form.append("primary", String(Boolean(input.primary)));
+    form.append("sortOrder", String(Number(input.sortOrder) || 0));
+    if (input.variantId) {
+      form.append("variantId", input.variantId);
+    }
+    return api.post(admin.createProductImage(productId).path, form).then((res) => res.data);
   }
 };

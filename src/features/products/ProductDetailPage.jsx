@@ -49,7 +49,7 @@ export default function ProductDetailPage() {
     defaultValues: { sku: "", size: "", color: "", price: 0, stock: 0 }
   });
   const imageForm = useForm({
-    defaultValues: { url: "", primary: false, sortOrder: 0, variantId: "" }
+    defaultValues: { url: "", file: null, primary: false, sortOrder: 0, variantId: "" }
   });
 
   useEffect(() => {
@@ -119,14 +119,25 @@ export default function ProductDetailPage() {
     onError: (error) => setProblem(parseApiError(error))
   });
   const createImage = useMutation({
-    mutationFn: (values) => adminApi.createProductImage(id, {
-      url: values.url,
-      primary: values.primary,
-      sortOrder: Number(values.sortOrder),
-      variantId: values.variantId || undefined
-    }),
+    mutationFn: (values) => {
+      const file = values.file?.[0] || values.file;
+      if (file instanceof File) {
+        return adminApi.createProductImageFile(id, {
+          file,
+          primary: values.primary,
+          sortOrder: Number(values.sortOrder),
+          variantId: values.variantId || undefined
+        });
+      }
+      return adminApi.createProductImage(id, {
+        url: values.url,
+        primary: values.primary,
+        sortOrder: Number(values.sortOrder),
+        variantId: values.variantId || undefined
+      });
+    },
     onSuccess: () => {
-      imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
+      imageForm.reset({ url: "", file: null, primary: false, sortOrder: 0, variantId: "" });
       invalidateProduct();
       pushToast("Đã thêm ảnh");
     },
@@ -368,14 +379,25 @@ export default function ProductDetailPage() {
         <div className="col-lg-5">
           <div className="card">
             <div className="card-body">
-              <h2 className="h6">Ảnh (HTTPS URL)</h2>
+              <h2 className="h6">Ảnh sản phẩm</h2>
               <form
                 onSubmit={imageForm.handleSubmit((values) => {
+                  const file = values.file?.[0];
+                  if (!file && !String(values.url || "").trim()) {
+                    setProblem({
+                      status: 400,
+                      code: "INVALID_PRODUCT_IMAGE",
+                      message: "Chọn file JPEG/PNG/WebP hoặc dán URL https.",
+                      fieldErrors: {}
+                    });
+                    return;
+                  }
                   setProblem(null);
                   createImage.mutate(values);
                 })}
               >
-                <input className="form-control mb-2" placeholder="https://..." {...imageForm.register("url", { required: true })} />
+                <input className="form-control mb-2" type="file" accept="image/jpeg,image/png,image/webp" {...imageForm.register("file")} />
+                <input className="form-control mb-2" placeholder="hoặc https://..." {...imageForm.register("url")} />
                 <div className="form-check mb-2">
                   <input className="form-check-input" type="checkbox" id="primary" {...imageForm.register("primary")} />
                   <label className="form-check-label" htmlFor="primary">Ảnh chính</label>
