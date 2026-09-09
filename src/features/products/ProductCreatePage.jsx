@@ -25,8 +25,8 @@ export default function ProductCreatePage() {
   const [problem, setProblem] = useState(null);
   const pushToast = useToastStore((state) => state.push);
   const categories = useQuery({
-    queryKey: ["public", "categories"],
-    queryFn: adminApi.listPublicCategories
+    queryKey: ["admin", "categories"],
+    queryFn: adminApi.listCategories
   });
   const form = useForm({
     resolver: zodResolver(schema),
@@ -57,7 +57,7 @@ export default function ProductCreatePage() {
           { label: "Sản phẩm", to: "/products" },
           { label: "Tạo mới" }
         ]}
-        description="Sản phẩm mới mặc định ẩn. Chỉ chọn được danh mục đang hiện. Sau khi tạo, thêm biến thể rồi bấm Hiện trên danh sách."
+        description="Chỉ gán được danh mục đang hiện. Sau khi tạo, thêm biến thể trên trang chi tiết."
       />
       {categories.isError && <ErrorAlert error={categories.error} />}
       <ErrorAlert problem={problem} />
@@ -99,7 +99,7 @@ export default function ProductCreatePage() {
           <label className="form-label" htmlFor="categoryId">Danh mục</label>
           <select id="categoryId" className="form-select" {...form.register("categoryId")}>
             <option value="">Chọn danh mục</option>
-            {(categories.data || []).map((category) => (
+            {(categories.data || []).filter((category) => category.active !== false).map((category) => (
               <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>

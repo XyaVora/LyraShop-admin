@@ -46,7 +46,7 @@ export default function ReviewListPage() {
       <PageHeader
         title="Đánh giá"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Đánh giá" }]}
-        description="Danh sách toàn shop. Đánh giá theo sản phẩm trên trang chi tiết dùng API công khai — không tải được nếu sản phẩm đang ẩn."
+        description="Danh sách toàn shop, kể cả sản phẩm ẩn. Trang chi tiết lọc theo productId từ API này."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm nội dung đánh giá..." />

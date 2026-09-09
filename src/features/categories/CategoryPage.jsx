@@ -10,9 +10,11 @@ import ExportCsvButton from "../../components/common/ExportCsvButton.jsx";
 import PageHeader from "../../components/common/PageHeader.jsx";
 import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
+import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import PaginationBar from "../../components/tables/PaginationBar.jsx";
 import { useListView } from "../../hooks/useListView.js";
+import { activeClass } from "../../utils/status.js";
 import { parseApiError } from "../../services/api/errors.js";
 import { slugify } from "../../utils/format.js";
 import { useToastStore } from "../../store/toastStore.js";
@@ -33,8 +35,8 @@ export default function CategoryPage() {
   const [editingId, setEditingId] = useState(null);
   const [pendingHide, setPendingHide] = useState(null);
   const query = useQuery({
-    queryKey: ["public", "categories"],
-    queryFn: adminApi.listPublicCategories
+    queryKey: ["admin", "categories"],
+    queryFn: adminApi.listCategories
   });
   const form = useForm({
     resolver: zodResolver(schema),
@@ -42,6 +44,7 @@ export default function CategoryPage() {
   });
 
   function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
     queryClient.invalidateQueries({ queryKey: ["public", "categories"] });
   }
 
@@ -72,6 +75,14 @@ export default function CategoryPage() {
     },
     onError: (error) => setProblem(parseApiError(error))
   });
+  const activate = useMutation({
+    mutationFn: adminApi.activateCategory,
+    onSuccess: () => {
+      invalidate();
+      pushToast("Đã hiện danh mục");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
 
   function submit(values) {
     setProblem(null);
@@ -98,7 +109,7 @@ export default function CategoryPage() {
       <PageHeader
         title="Danh mục"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Danh mục" }]}
-        description="Danh sách lấy từ GET công khai nên chỉ có danh mục đang hiện. Ẩn là một chiều: chưa có API hiện lại."
+        description="Danh sách quản trị gồm cả danh mục ẩn. Hiện lại dùng PATCH activate. Form cha chỉ nên chọn danh mục đang hiện."
       />
       <ErrorAlert problem={problem} />
       {query.isError && <ErrorAlert error={query.error} />}
@@ -113,7 +124,7 @@ export default function CategoryPage() {
             <textarea className="form-control mb-2" placeholder="Mô tả" {...form.register("description")} />
             <select className="form-select mb-3" {...form.register("parentId")}>
               <option value="">Không có danh mục cha</option>
-              {(query.data || []).filter((item) => item.id !== editingId).map((item) => (
+              {(query.data || []).filter((item) => item.id !== editingId && item.active !== false).map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
@@ -155,7 +166,7 @@ export default function CategoryPage() {
                 <DataTable
                   rows={list.rows}
                   rowKey={(row) => row.id}
-                  emptyTitle="Chưa có danh mục hiện"
+                  emptyTitle="Chưa có danh mục"
                   sortKey={list.sortKey}
                   sortDir={list.sortDir}
                   onSort={list.toggleSort}
@@ -163,6 +174,17 @@ export default function CategoryPage() {
                     { key: "name", header: "Tên", sortable: true },
                     { key: "slug", header: "Slug", sortable: true },
                     { key: "parentId", header: "Cha", sortable: true },
+                    {
+                      key: "active",
+                      header: "Trạng thái",
+                      sortable: true,
+                      render: (row) => (
+                        <StatusBadge
+                          className={activeClass(row.active)}
+                          label={row.active ? "Hiện" : "Ẩn"}
+                        />
+                      )
+                    },
                     {
                       key: "actions",
                       header: "",
@@ -183,13 +205,23 @@ export default function CategoryPage() {
                           >
                             Sửa
                           </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger"
-                            onClick={() => setPendingHide(row)}
-                          >
-                            Ẩn
-                          </button>
+                          {row.active ? (
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger"
+                              onClick={() => setPendingHide(row)}
+                            >
+                              Ẩn
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-outline-secondary"
+                              onClick={() => activate.mutate(row.id)}
+                            >
+                              Hiện
+                            </button>
+                          )}
                         </div>
                       )
                     }
@@ -212,7 +244,7 @@ export default function CategoryPage() {
       <ConfirmModal
         open={Boolean(pendingHide)}
         title="Ẩn danh mục"
-        message={`"${pendingHide?.name || ""}" sẽ biến khỏi GET /api/v1/categories. Backend chưa có API hiện lại.`}
+        message={`"${pendingHide?.name || ""}" sẽ biến khỏi catalog công khai. Có thể hiện lại sau.`}
         confirmLabel="Ẩn"
         danger
         onCancel={() => setPendingHide(null)}

@@ -62,7 +62,7 @@ export default function ProductListPage() {
         title="Sản phẩm"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Sản phẩm" }]}
         actions={<Link className="btn btn-lyra btn-sm" to="/products/new">Tạo sản phẩm</Link>}
-        description="Danh sách quản trị đủ cả sản phẩm ẩn. Ảnh, biến thể đang bán và đánh giá công khai chỉ có khi sản phẩm đang hiện."
+        description="Danh sách quản trị đủ cả sản phẩm ẩn. Chi tiết gồm version, biến thể ẩn/hiện và tồn kho."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField
