@@ -35,7 +35,7 @@ export function buildCredentialedRequest({
   const headers = {
     Accept: "application/json"
   };
-  if (body !== undefined) {
+  if (body !== undefined && !(typeof FormData !== "undefined" && body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
   if (accessToken) {
