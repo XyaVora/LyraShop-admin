@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from "../../store/authStore.js";
 
 const endpoints = authEndpoints();
+let restorePromise = null;
 
 async function logoutCurrentSession() {
   try {
@@ -37,7 +38,7 @@ export async function login(credentials) {
   return session;
 }
 
-export async function restoreSession() {
+async function restoreCurrentSession() {
   try {
     const csrfResponse = await requestEndpoint(endpoints.csrf);
     const csrfToken = csrfResponse.headers?.["x-xsrf-token"]
@@ -60,6 +61,15 @@ export async function restoreSession() {
     useAuthStore.getState().clear();
     throw error;
   }
+}
+
+export function restoreSession() {
+  if (!restorePromise) {
+    restorePromise = restoreCurrentSession().finally(() => {
+      restorePromise = null;
+    });
+  }
+  return restorePromise;
 }
 
 export async function logout() {

@@ -15,9 +15,9 @@ npm test
 npm run dev
 ```
 
-The UI listens on `http://localhost:5174`. Start the backend on `http://localhost:8080` and leave `VITE_API_URL` empty. Vite dev and preview proxy `/api` to the backend, so local login does not require adding the admin port to backend CORS. Restart Vite after changing environment variables.
+The UI listens on `http://localhost:5174`. Start the backend on `http://localhost:8080` and leave `VITE_API_URL` empty. Vite dev and preview proxy `/admin-api` to backend `/api`. Authentication cookies are rewritten to `/admin-api/v1/auth`, keeping the admin session separate from the storefront session on `/api/v1/auth`. Restart Vite after changing environment variables.
 
-For production, configure your web server to proxy `/api` to the backend, or set `VITE_API_URL` to the backend origin before building. The included static Nginx configuration does not provide an API proxy. When using an absolute backend URL, the backend CORS allowlist must include the admin origin.
+For production, use a separate admin hostname or configure the gateway to proxy `/admin-api` to backend `/api` and rewrite cookie path `/api/v1/auth` to `/admin-api/v1/auth`. Setting an absolute `VITE_API_URL` requires backend CORS and does not isolate cookies when the storefront and admin share the same hostname.
 
 Login requires an `ADMIN` user; registration always creates `CUSTOMER`. Promote an account in MySQL:
 

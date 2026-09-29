@@ -2,9 +2,13 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 const apiProxy = {
-  "/api": {
+  "/admin-api": {
     target: "http://localhost:8080",
     changeOrigin: true,
+    rewrite: (path) => path.replace(/^\/admin-api/, "/api"),
+    cookiePathRewrite: {
+      "/api/v1/auth": "/admin-api/v1/auth"
+    },
     configure(proxy) {
       // The browser talks to Vite on the same origin; upstream CORS is unnecessary.
       proxy.on("proxyReq", (proxyReq) => proxyReq.removeHeader("origin"));

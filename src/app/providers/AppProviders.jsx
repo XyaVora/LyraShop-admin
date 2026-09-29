@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { restoreSession } from "../../services/api/authApi.js";
 import LoadingState from "../../components/common/LoadingState.jsx";
+import { useUiStore } from "../../store/uiStore.js";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,6 +16,13 @@ const queryClient = new QueryClient({
 
 export default function AppProviders({ children }) {
   const [ready, setReady] = useState(false);
+  const theme = useUiStore((state) => state.theme);
+  const density = useUiStore((state) => state.density);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.density = density;
+  }, [theme, density]);
 
   useEffect(() => {
     let cancelled = false;

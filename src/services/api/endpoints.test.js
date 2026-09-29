@@ -5,15 +5,23 @@ import {
   createCategoryBody,
   createProductBody,
   createProductImageBody,
+  updateProductImageBody,
   createVariantBody,
+  cancelOrderBody,
   loginBody,
   nextOrderStatus,
+  refundOrderBody,
+  returnDecisionBody,
+  promotionBody,
   publicEndpoints,
   updateOrderStatusBody,
+  updateOrderTrackingBody,
+  trackingEventBody,
   updateProductBody,
   updateUserRoleBody,
   updateUserStatusBody,
-  updateVariantBody
+  updateVariantBody,
+  voucherBody
 } from "./endpoints.js";
 
 describe("auth and admin endpoint mapping", () => {
@@ -29,6 +37,7 @@ describe("auth and admin endpoint mapping", () => {
   it("maps dashboard products categories orders users reviews to admin APIs", () => {
     const admin = adminEndpoints();
     expect(admin.dashboard).toEqual({ method: "GET", path: "/api/v1/admin/dashboard" });
+    expect(admin.search).toEqual({ method: "GET", path: "/api/v1/admin/search" });
     expect(admin.products).toEqual({ method: "GET", path: "/api/v1/admin/products" });
     expect(admin.product("p1")).toEqual({ method: "GET", path: "/api/v1/admin/products/p1" });
     expect(admin.createProduct).toEqual({ method: "POST", path: "/api/v1/admin/products" });
@@ -58,6 +67,22 @@ describe("auth and admin endpoint mapping", () => {
       method: "PUT",
       path: "/api/v1/admin/orders/o1/status"
     });
+    expect(admin.cancelOrder("o1")).toEqual({ method: "PUT", path: "/api/v1/admin/orders/o1/cancel" });
+    expect(admin.returnRequests).toEqual({ method: "GET", path: "/api/v1/admin/orders/return-requests" });
+    expect(admin.approveReturnRequest("o1")).toEqual({ method: "PUT", path: "/api/v1/admin/orders/o1/return-request/approve" });
+    expect(admin.createRefund("o1")).toEqual({ method: "POST", path: "/api/v1/admin/orders/o1/refunds" });
+    expect(admin.updateOrderTracking("o1")).toEqual({
+      method: "PUT",
+      path: "/api/v1/admin/orders/o1/tracking"
+    });
+    expect(admin.orderTrackingEvents("o1")).toEqual({
+      method: "GET",
+      path: "/api/v1/admin/orders/o1/tracking-events"
+    });
+    expect(admin.createOrderTrackingEvent("o1")).toEqual({
+      method: "POST",
+      path: "/api/v1/admin/orders/o1/tracking-events"
+    });
     expect(admin.users).toEqual({ method: "GET", path: "/api/v1/admin/users" });
     expect(admin.updateUserStatus("u1")).toEqual({
       method: "PUT",
@@ -69,6 +94,10 @@ describe("auth and admin endpoint mapping", () => {
     });
     expect(admin.reviews).toEqual({ method: "GET", path: "/api/v1/admin/reviews" });
     expect(admin.deleteReview(3)).toEqual({ method: "DELETE", path: "/api/v1/admin/reviews/3" });
+    expect(admin.promotions).toEqual({ method: "GET", path: "/api/v1/admin/promotions" });
+    expect(admin.createPromotion).toEqual({ method: "POST", path: "/api/v1/admin/promotions" });
+    expect(admin.updatePromotion("sale-1")).toEqual({ method: "PUT", path: "/api/v1/admin/promotions/sale-1" });
+    expect(admin.deletePromotion("sale-1")).toEqual({ method: "DELETE", path: "/api/v1/admin/promotions/sale-1" });
     expect(admin.updateVariant("p1", "v1")).toEqual({
       method: "PUT",
       path: "/api/v1/admin/products/p1/variants/v1"
@@ -77,6 +106,12 @@ describe("auth and admin endpoint mapping", () => {
       method: "PATCH",
       path: "/api/v1/admin/products/p1/variants/v1/activate"
     });
+    expect(admin.updateProductImage("p1", 7)).toEqual({ method: "PUT", path: "/api/v1/admin/products/p1/images/7" });
+    expect(admin.deleteProductImage("p1", 7)).toEqual({ method: "DELETE", path: "/api/v1/admin/products/p1/images/7" });
+    expect(admin.inventoryAdjustments("p1")).toEqual({ method: "GET", path: "/api/v1/admin/products/p1/variants/inventory-adjustments" });
+    expect(admin.vouchers).toEqual({ method: "GET", path: "/api/v1/admin/vouchers" });
+    expect(admin.auditLogs).toEqual({ method: "GET", path: "/api/v1/admin/audit-logs" });
+    expect(admin.auditLogs).toEqual({ method: "GET", path: "/api/v1/admin/audit-logs" });
     expect(publicEndpoints().categories).toEqual({ method: "GET", path: "/api/v1/categories" });
     expect(publicEndpoints().product("p1")).toEqual({
       method: "GET",
@@ -127,6 +162,33 @@ describe("auth and admin endpoint mapping", () => {
     });
 
     expect(updateOrderStatusBody(" CONFIRMED ")).toEqual({ status: "CONFIRMED" });
+    expect(cancelOrderBody(" Khách yêu cầu ")).toEqual({ reason: "Khách yêu cầu" });
+    expect(returnDecisionBody(" Đã kiểm tra ")).toEqual({ note: "Đã kiểm tra" });
+    expect(returnDecisionBody(" ")).toEqual({});
+    expect(refundOrderBody({ amount: "125000", reference: " RF-001 ", note: " Chuyển khoản " }))
+      .toEqual({ amount: 125000, reference: "RF-001", note: "Chuyển khoản" });
+    expect(updateOrderTrackingBody({
+      carrier: " GHN ",
+      trackingCode: " GHN-123 ",
+      trackingUrl: " https://example.test/GHN-123 ",
+      estimatedDeliveryAt: "2026-09-30T15:30"
+    })).toEqual({
+      carrier: "GHN",
+      trackingCode: "GHN-123",
+      trackingUrl: "https://example.test/GHN-123",
+      estimatedDeliveryAt: new Date("2026-09-30T15:30").toISOString()
+    });
+    expect(trackingEventBody({
+      status: " IN_TRANSIT ",
+      description: " Đang trung chuyển ",
+      location: " TP.HCM ",
+      occurredAt: "2026-09-28T08:00"
+    })).toEqual({
+      status: "IN_TRANSIT",
+      description: "Đang trung chuyển",
+      location: "TP.HCM",
+      occurredAt: new Date("2026-09-28T08:00").toISOString()
+    });
     expect(updateUserStatusBody(1)).toEqual({ active: true });
     expect(updateUserRoleBody(" ADMIN ")).toEqual({ role: "ADMIN" });
     expect(updateProductBody({
@@ -183,6 +245,26 @@ describe("auth and admin endpoint mapping", () => {
       primary: true,
       sortOrder: 2
     });
+    expect(updateProductImageBody({ primary: true, sortOrder: "3", variantId: "v1" }))
+      .toEqual({ primary: true, sortOrder: 3, variantId: "v1" });
+    expect(promotionBody({
+      name: " Flash sale ",
+      description: " Cuối tuần ",
+      discountPercent: "20",
+      startsAt: "2026-09-28T08:00",
+      endsAt: "2026-09-30T23:00",
+      active: true,
+      productIds: ["p1", "p1", "p2"]
+    })).toEqual({
+      name: "Flash sale",
+      description: "Cuối tuần",
+      discountPercent: 20,
+      startsAt: new Date("2026-09-28T08:00").toISOString(),
+      endsAt: new Date("2026-09-30T23:00").toISOString(),
+      active: true,
+      productIds: ["p1", "p2"]
+    });
+    expect(voucherBody({ code: " lyra20 ", label: " Giảm 20% ", type: "discount", discountType: "PERCENT", discountValue: "20", maxDiscountAmount: "100000", minimumOrderAmount: "500000", startsAt: "2026-10-01T00:00", endsAt: "2026-10-31T23:59", totalUsageLimit: "100", perUserLimit: "1", active: true })).toEqual({ code: "LYRA20", label: "Giảm 20%", type: "discount", discountType: "PERCENT", discountValue: 20, maxDiscountAmount: 100000, minimumOrderAmount: 500000, startsAt: new Date("2026-10-01T00:00").toISOString(), endsAt: new Date("2026-10-31T23:59").toISOString(), totalUsageLimit: 100, perUserLimit: 1, active: true });
   });
 
   it("only allows the linear order status walk", () => {

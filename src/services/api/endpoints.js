@@ -62,6 +62,53 @@ export function updateOrderStatusBody(status) {
   return { status: String(status).trim() };
 }
 
+export function cancelOrderBody(reason) {
+  return { reason: String(reason).trim() };
+}
+
+export function returnDecisionBody(note) {
+  const value = optionalText(note);
+  return value === undefined ? {} : { note: value };
+}
+
+export function refundOrderBody(input) {
+  const body = {
+    amount: Number(input.amount),
+    reference: String(input.reference).trim()
+  };
+  const note = optionalText(input.note);
+  if (note !== undefined) body.note = note;
+  return body;
+}
+
+export function updateOrderTrackingBody(input) {
+  const body = {
+    carrier: String(input.carrier).trim(),
+    trackingCode: String(input.trackingCode).trim()
+  };
+  const trackingUrl = optionalText(input.trackingUrl);
+  if (trackingUrl !== undefined) {
+    body.trackingUrl = trackingUrl;
+  }
+  if (input.estimatedDeliveryAt) {
+    body.estimatedDeliveryAt = new Date(input.estimatedDeliveryAt).toISOString();
+  }
+  return body;
+}
+
+export function trackingEventBody(input) {
+  const body = {
+    status: String(input.status).trim(),
+    description: String(input.description).trim(),
+    occurredAt: new Date(input.occurredAt).toISOString()
+  };
+  const location = optionalText(input.location);
+  if (location !== undefined) {
+    body.location = location;
+  }
+  return body;
+}
+
 export function updateUserStatusBody(active) {
   return { active: Boolean(active) };
 }
@@ -108,7 +155,8 @@ export function createVariantBody(input) {
 export function adjustInventoryBody(input) {
   return {
     stock: Number(input.stock),
-    version: Number(input.version)
+    version: Number(input.version),
+    reason: String(input.reason).trim()
   };
 }
 
@@ -122,6 +170,35 @@ export function createProductImageBody(input) {
     body.variantId = input.variantId;
   }
   return body;
+}
+
+export function updateProductImageBody(input) {
+  const body = { primary: Boolean(input.primary), sortOrder: Number(input.sortOrder) };
+  if (input.variantId) body.variantId = input.variantId;
+  return body;
+}
+
+export function promotionBody(input) {
+  return {
+    name: String(input.name).trim(),
+    description: optionalText(input.description),
+    discountPercent: Number(input.discountPercent),
+    startsAt: new Date(input.startsAt).toISOString(),
+    endsAt: new Date(input.endsAt).toISOString(),
+    active: Boolean(input.active),
+    productIds: Array.from(new Set((input.productIds || []).map(String)))
+  };
+}
+
+export function voucherBody(input) {
+  return {
+    code: String(input.code).trim().toUpperCase(), label: String(input.label).trim(),
+    type: input.type, discountType: input.discountType, discountValue: Number(input.discountValue),
+    maxDiscountAmount: input.maxDiscountAmount === "" || input.maxDiscountAmount == null ? null : Number(input.maxDiscountAmount),
+    minimumOrderAmount: Number(input.minimumOrderAmount), startsAt: new Date(input.startsAt).toISOString(),
+    endsAt: new Date(input.endsAt).toISOString(), totalUsageLimit: input.totalUsageLimit === "" || input.totalUsageLimit == null ? null : Number(input.totalUsageLimit),
+    perUserLimit: Number(input.perUserLimit), active: Boolean(input.active)
+  };
 }
 
 export const ORDER_STATUS_SEQUENCE = [
@@ -152,6 +229,7 @@ export function authEndpoints() {
 export function adminEndpoints() {
   return {
     dashboard: { method: "GET", path: "/api/v1/admin/dashboard" },
+    search: { method: "GET", path: "/api/v1/admin/search" },
     products: { method: "GET", path: "/api/v1/admin/products" },
     product: (id) => ({ method: "GET", path: `/api/v1/admin/products/${id}` }),
     createProduct: { method: "POST", path: "/api/v1/admin/products" },
@@ -187,6 +265,47 @@ export function adminEndpoints() {
       method: "PUT",
       path: `/api/v1/admin/orders/${id}/status`
     }),
+    cancelOrder: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/orders/${id}/cancel`
+    }),
+    returnRequests: { method: "GET", path: "/api/v1/admin/orders/return-requests" },
+    orderReturnRequest: (id) => ({
+      method: "GET",
+      path: `/api/v1/admin/orders/${id}/return-request`
+    }),
+    approveReturnRequest: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/orders/${id}/return-request/approve`
+    }),
+    rejectReturnRequest: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/orders/${id}/return-request/reject`
+    }),
+    receiveReturnRequest: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/orders/${id}/return-request/receive`
+    }),
+    refunds: (id) => ({
+      method: "GET",
+      path: `/api/v1/admin/orders/${id}/refunds`
+    }),
+    createRefund: (id) => ({
+      method: "POST",
+      path: `/api/v1/admin/orders/${id}/refunds`
+    }),
+    updateOrderTracking: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/orders/${id}/tracking`
+    }),
+    orderTrackingEvents: (id) => ({
+      method: "GET",
+      path: `/api/v1/admin/orders/${id}/tracking-events`
+    }),
+    createOrderTrackingEvent: (id) => ({
+      method: "POST",
+      path: `/api/v1/admin/orders/${id}/tracking-events`
+    }),
     users: { method: "GET", path: "/api/v1/admin/users" },
     updateUserStatus: (id) => ({
       method: "PUT",
@@ -201,6 +320,21 @@ export function adminEndpoints() {
       method: "DELETE",
       path: `/api/v1/admin/reviews/${id}`
     }),
+    promotions: { method: "GET", path: "/api/v1/admin/promotions" },
+    createPromotion: { method: "POST", path: "/api/v1/admin/promotions" },
+    updatePromotion: (id) => ({
+      method: "PUT",
+      path: `/api/v1/admin/promotions/${id}`
+    }),
+    deletePromotion: (id) => ({
+      method: "DELETE",
+      path: `/api/v1/admin/promotions/${id}`
+    }),
+    vouchers: { method: "GET", path: "/api/v1/admin/vouchers" },
+    createVoucher: { method: "POST", path: "/api/v1/admin/vouchers" },
+    updateVoucher: (id) => ({ method: "PUT", path: `/api/v1/admin/vouchers/${id}` }),
+    deleteVoucher: (id) => ({ method: "DELETE", path: `/api/v1/admin/vouchers/${id}` }),
+    auditLogs: { method: "GET", path: "/api/v1/admin/audit-logs" },
     createVariant: (productId) => ({
       method: "POST",
       path: `/api/v1/admin/products/${productId}/variants`
@@ -221,9 +355,21 @@ export function adminEndpoints() {
       method: "PATCH",
       path: `/api/v1/admin/products/${productId}/variants/${variantId}/inventory`
     }),
+    inventoryAdjustments: (productId) => ({
+      method: "GET",
+      path: `/api/v1/admin/products/${productId}/variants/inventory-adjustments`
+    }),
     createProductImage: (productId) => ({
       method: "POST",
       path: `/api/v1/admin/products/${productId}/images`
+    }),
+    updateProductImage: (productId, imageId) => ({
+      method: "PUT",
+      path: `/api/v1/admin/products/${productId}/images/${imageId}`
+    }),
+    deleteProductImage: (productId, imageId) => ({
+      method: "DELETE",
+      path: `/api/v1/admin/products/${productId}/images/${imageId}`
     })
   };
 }

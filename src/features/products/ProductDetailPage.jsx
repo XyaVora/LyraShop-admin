@@ -20,6 +20,7 @@ export default function ProductDetailPage() {
   const queryClient = useQueryClient();
   const [problem, setProblem] = useState(null);
   const [pendingReview, setPendingReview] = useState(null);
+  const [pendingImage, setPendingImage] = useState(null);
   const pushToast = useToastStore((state) => state.push);
 
   const productQuery = useQuery({
@@ -33,6 +34,10 @@ export default function ProductDetailPage() {
   const reviewsQuery = useQuery({
     queryKey: ["admin", "reviews"],
     queryFn: adminApi.listReviews
+  });
+  const inventoryHistory = useQuery({
+    queryKey: ["admin", "products", id, "inventory-adjustments"],
+    queryFn: () => adminApi.listInventoryAdjustments(id)
   });
 
   const product = productQuery.data;
@@ -110,10 +115,11 @@ export default function ProductDetailPage() {
     onError: (error) => setProblem(parseApiError(error))
   });
   const adjust = useMutation({
-    mutationFn: ({ variantId, stock, version }) =>
-      adminApi.adjustInventory(id, variantId, { stock, version }),
+    mutationFn: ({ variantId, stock, version, reason }) =>
+      adminApi.adjustInventory(id, variantId, { stock, version, reason }),
     onSuccess: () => {
       invalidateProduct();
+      queryClient.invalidateQueries({ queryKey: ["admin", "products", id, "inventory-adjustments"] });
       pushToast("Đã cập nhật tồn");
     },
     onError: (error) => setProblem(parseApiError(error))
@@ -129,6 +135,30 @@ export default function ProductDetailPage() {
       imageForm.reset({ url: "", primary: false, sortOrder: 0, variantId: "" });
       invalidateProduct();
       pushToast("Đã thêm ảnh");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const uploadImage = useMutation({
+    mutationFn: ({ file, values }) => adminApi.uploadProductImage(id, file, values),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã tải ảnh lên");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const updateImage = useMutation({
+    mutationFn: ({ imageId, values }) => adminApi.updateProductImage(id, imageId, values),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã cập nhật ảnh");
+    },
+    onError: (error) => setProblem(parseApiError(error))
+  });
+  const deleteImage = useMutation({
+    mutationFn: (imageId) => adminApi.deleteProductImage(id, imageId),
+    onSuccess: () => {
+      invalidateProduct();
+      pushToast("Đã xóa ảnh");
     },
     onError: (error) => setProblem(parseApiError(error))
   });
@@ -319,10 +349,11 @@ export default function ProductDetailPage() {
                               event.preventDefault();
                               const stock = Number(new FormData(event.currentTarget).get("stock"));
                               setProblem(null);
-                              adjust.mutate({ variantId: variant.id, stock, version: variant.version });
+                              adjust.mutate({ variantId: variant.id, stock, version: variant.version, reason: new FormData(event.currentTarget).get("reason") });
                             }}
                           >
                             <input name="stock" type="number" min="0" className="form-control form-control-sm" defaultValue={variant.stock} />
+                            <input name="reason" className="form-control form-control-sm" placeholder="Lý do" required />
                             <button className="btn btn-outline-secondary btn-sm" type="submit">Tồn</button>
                           </form>
                           <form
@@ -362,6 +393,15 @@ export default function ProductDetailPage() {
                   ))}
                 </ul>
               )}
+              <h3 className="h6 mt-4">Lịch sử điều chỉnh tồn</h3>
+              {inventoryHistory.isLoading ? <SkeletonBlock rows={3} /> : (
+                <DataTable rows={(inventoryHistory.data || []).slice(0, 20)} rowKey={(row) => row.id} emptyTitle="Chưa có điều chỉnh thủ công" columns={[
+                  { key: "variantId", header: "Biến thể", render: (row) => (product.variants || []).find((variant) => variant.id === row.variantId)?.sku || row.variantId },
+                  { key: "change", header: "Thay đổi", render: (row) => `${row.stockBefore} → ${row.stockAfter}` },
+                  { key: "reason", header: "Lý do" },
+                  { key: "createdAt", header: "Thời gian", render: (row) => formatDateTime(row.createdAt) }
+                ]} />
+              )}
             </div>
           </div>
         </div>
@@ -397,9 +437,58 @@ export default function ProductDetailPage() {
                     <a href={image.url} target="_blank" rel="noreferrer">
                       {image.primary ? "Ảnh chính" : `Ảnh #${image.sortOrder}`}
                     </a>
+                    <form className="row g-2 mt-1" onSubmit={(event) => {
+                      event.preventDefault();
+                      const data = new FormData(event.currentTarget);
+                      updateImage.mutate({ imageId: image.id, values: {
+                        sortOrder: data.get("sortOrder"), variantId: data.get("variantId"),
+                        primary: data.get("primary") === "on"
+                      } });
+                    }}>
+                      <div className="col-3"><input name="sortOrder" type="number" min="0" className="form-control form-control-sm" defaultValue={image.sortOrder} aria-label="Thứ tự ảnh" /></div>
+                      <div className="col-5"><select name="variantId" className="form-select form-select-sm" defaultValue={image.variantId || ""}><option value="">Toàn sản phẩm</option>{(product.variants || []).map((variant) => <option key={variant.id} value={variant.id}>{variant.sku}</option>)}</select></div>
+                      <div className="col-4 d-flex align-items-center gap-2"><label className="form-check mb-0"><input name="primary" type="checkbox" className="form-check-input" defaultChecked={image.primary} /> Chính</label><button type="submit" className="btn btn-outline-secondary btn-sm">Lưu</button><button type="button" className="btn btn-outline-danger btn-sm" onClick={() => setPendingImage(image)}>Xóa</button></div>
+                    </form>
                   </li>
                 ))}
               </ul>
+              <hr />
+              <h3 className="h6">Tải ảnh từ máy</h3>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const data = new FormData(event.currentTarget);
+                  const file = data.get("file");
+                  if (!(file instanceof File) || file.size === 0) {
+                    return;
+                  }
+                  setProblem(null);
+                  uploadImage.mutate({
+                    file,
+                    values: {
+                      primary: data.get("primary") === "on",
+                      sortOrder: Number(data.get("sortOrder")),
+                      variantId: data.get("variantId") || undefined
+                    }
+                  });
+                }}
+              >
+                <input name="file" type="file" accept="image/jpeg,image/png,image/webp" className="form-control mb-2" required />
+                <div className="form-check mb-2">
+                  <input name="primary" className="form-check-input" type="checkbox" id="upload-primary" />
+                  <label className="form-check-label" htmlFor="upload-primary">Ảnh chính</label>
+                </div>
+                <input name="sortOrder" className="form-control mb-2" type="number" min="0" defaultValue="0" />
+                <select name="variantId" className="form-select mb-2">
+                  <option value="">Không gắn biến thể</option>
+                  {(product.variants || []).map((variant) => (
+                    <option key={variant.id} value={variant.id}>{variant.sku}</option>
+                  ))}
+                </select>
+                <button className="btn btn-outline-secondary btn-sm" type="submit" disabled={uploadImage.isPending}>
+                  Tải ảnh lên
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -415,6 +504,19 @@ export default function ProductDetailPage() {
           setProblem(null);
           deleteReview.mutate(pendingReview.id);
           setPendingReview(null);
+        }}
+      />
+      <ConfirmModal
+        open={Boolean(pendingImage)}
+        title="Xóa ảnh sản phẩm"
+        message="Ảnh sẽ bị xóa khỏi sản phẩm; file tải lên cũng sẽ bị xóa khỏi máy chủ."
+        confirmLabel="Xóa ảnh"
+        danger
+        onCancel={() => setPendingImage(null)}
+        onConfirm={() => {
+          setProblem(null);
+          deleteImage.mutate(pendingImage.id);
+          setPendingImage(null);
         }}
       />
     </div>

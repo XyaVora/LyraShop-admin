@@ -1,18 +1,26 @@
-import { requestEndpoint } from "./client.js";
+import { api, requestEndpoint } from "./client.js";
 import {
   adjustInventoryBody,
+  cancelOrderBody,
   adminEndpoints,
   createCategoryBody,
   createProductBody,
   createProductImageBody,
+  updateProductImageBody,
+  promotionBody,
   createVariantBody,
   publicEndpoints,
   updateCategoryBody,
   updateOrderStatusBody,
+  updateOrderTrackingBody,
+  trackingEventBody,
+  refundOrderBody,
+  returnDecisionBody,
   updateProductBody,
   updateUserRoleBody,
   updateUserStatusBody,
-  updateVariantBody
+  updateVariantBody,
+  voucherBody
 } from "./endpoints.js";
 
 const admin = adminEndpoints();
@@ -21,6 +29,9 @@ const published = publicEndpoints();
 export const adminApi = {
   dashboard() {
     return requestEndpoint(admin.dashboard).then((res) => res.data);
+  },
+  search(query) {
+    return api.get(admin.search.path, { params: { q: query } }).then((res) => res.data);
   },
   listProducts() {
     return requestEndpoint(admin.products).then((res) => res.data);
@@ -73,6 +84,39 @@ export const adminApi = {
   updateOrderStatus(id, status) {
     return requestEndpoint(admin.updateOrderStatus(id), updateOrderStatusBody(status)).then((res) => res.data);
   },
+  cancelOrder(id, reason) {
+    return requestEndpoint(admin.cancelOrder(id), cancelOrderBody(reason)).then((res) => res.data);
+  },
+  listReturnRequests() {
+    return requestEndpoint(admin.returnRequests).then((res) => res.data);
+  },
+  getOrderReturnRequest(id) {
+    return requestEndpoint(admin.orderReturnRequest(id)).then((res) => res.data);
+  },
+  approveReturnRequest(id, note) {
+    return requestEndpoint(admin.approveReturnRequest(id), returnDecisionBody(note)).then((res) => res.data);
+  },
+  rejectReturnRequest(id, note) {
+    return requestEndpoint(admin.rejectReturnRequest(id), returnDecisionBody(note)).then((res) => res.data);
+  },
+  receiveReturnRequest(id, note) {
+    return requestEndpoint(admin.receiveReturnRequest(id), returnDecisionBody(note)).then((res) => res.data);
+  },
+  listRefunds(id) {
+    return requestEndpoint(admin.refunds(id)).then((res) => res.data);
+  },
+  createRefund(id, input) {
+    return requestEndpoint(admin.createRefund(id), refundOrderBody(input)).then((res) => res.data);
+  },
+  updateOrderTracking(id, input) {
+    return requestEndpoint(admin.updateOrderTracking(id), updateOrderTrackingBody(input)).then((res) => res.data);
+  },
+  listOrderTrackingEvents(id) {
+    return requestEndpoint(admin.orderTrackingEvents(id)).then((res) => res.data);
+  },
+  createOrderTrackingEvent(id, input) {
+    return requestEndpoint(admin.createOrderTrackingEvent(id), trackingEventBody(input)).then((res) => res.data);
+  },
   listUsers() {
     return requestEndpoint(admin.users).then((res) => res.data);
   },
@@ -88,6 +132,23 @@ export const adminApi = {
   deleteReview(id) {
     return requestEndpoint(admin.deleteReview(id)).then((res) => res.data);
   },
+  listPromotions() {
+    return requestEndpoint(admin.promotions).then((res) => res.data);
+  },
+  createPromotion(input) {
+    return requestEndpoint(admin.createPromotion, promotionBody(input)).then((res) => res.data);
+  },
+  updatePromotion(id, input) {
+    return requestEndpoint(admin.updatePromotion(id), promotionBody(input)).then((res) => res.data);
+  },
+  deletePromotion(id) {
+    return requestEndpoint(admin.deletePromotion(id)).then((res) => res.data);
+  },
+  listVouchers() { return requestEndpoint(admin.vouchers).then((res) => res.data); },
+  createVoucher(input) { return requestEndpoint(admin.createVoucher, voucherBody(input)).then((res) => res.data); },
+  updateVoucher(id, input) { return requestEndpoint(admin.updateVoucher(id), voucherBody(input)).then((res) => res.data); },
+  deleteVoucher(id) { return requestEndpoint(admin.deleteVoucher(id)).then((res) => res.data); },
+  listAuditLogs() { return requestEndpoint(admin.auditLogs).then((res) => res.data); },
   createVariant(productId, input) {
     return requestEndpoint(admin.createVariant(productId), createVariantBody(input)).then((res) => res.data);
   },
@@ -109,8 +170,28 @@ export const adminApi = {
       adjustInventoryBody(input)
     ).then((res) => res.data);
   },
+  listInventoryAdjustments(productId) {
+    return requestEndpoint(admin.inventoryAdjustments(productId)).then((res) => res.data);
+  },
   createProductImage(productId, input) {
     return requestEndpoint(admin.createProductImage(productId), createProductImageBody(input))
       .then((res) => res.data);
+  },
+  updateProductImage(productId, imageId, input) {
+    return requestEndpoint(admin.updateProductImage(productId, imageId), updateProductImageBody(input))
+      .then((res) => res.data);
+  },
+  deleteProductImage(productId, imageId) {
+    return requestEndpoint(admin.deleteProductImage(productId, imageId)).then((res) => res.data);
+  },
+  uploadProductImage(productId, file, input) {
+    const form = new FormData();
+    form.append("file", file);
+    if (input.variantId) {
+      form.append("variantId", input.variantId);
+    }
+    form.append("primary", String(Boolean(input.primary)));
+    form.append("sortOrder", String(Number(input.sortOrder) || 0));
+    return api.post(admin.createProductImage(productId).path, form).then((res) => res.data);
   }
 };

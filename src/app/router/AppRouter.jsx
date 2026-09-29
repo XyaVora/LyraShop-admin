@@ -10,6 +10,9 @@ import OrderListPage from "../../features/orders/OrderListPage.jsx";
 import OrderDetailPage from "../../features/orders/OrderDetailPage.jsx";
 import UserListPage from "../../features/users/UserListPage.jsx";
 import ReviewListPage from "../../features/reviews/ReviewListPage.jsx";
+import PromotionPage from "../../features/promotions/PromotionPage.jsx";
+import VoucherPage from "../../features/vouchers/VoucherPage.jsx";
+import AuditLogPage from "../../features/audit/AuditLogPage.jsx";
 import { useAuthStore } from "../../store/authStore.js";
 
 function RequireAdmin({ children }) {
@@ -42,6 +45,9 @@ export default function AppRouter() {
         <Route path="orders/:id" element={<OrderDetailPage />} />
         <Route path="users" element={<UserListPage />} />
         <Route path="reviews" element={<ReviewListPage />} />
+        <Route path="promotions" element={<PromotionPage />} />
+        <Route path="vouchers" element={<VoucherPage />} />
+        <Route path="audit-logs" element={<AuditLogPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

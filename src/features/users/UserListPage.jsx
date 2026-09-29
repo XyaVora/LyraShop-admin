@@ -139,7 +139,7 @@ export default function UserListPage() {
                         <button
                           type="button"
                           className="btn btn-outline-secondary btn-sm"
-                          disabled={roleMutation.isPending}
+                          disabled={isSelf || roleMutation.isPending}
                           onClick={() => setPendingRole(row)}
                         >
                           {row.role === "ADMIN" ? "Thành khách" : "Thành admin"}

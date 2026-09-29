@@ -7,6 +7,13 @@ const CSRF_PATHS = new Set([
   "/api/v1/auth/logout"
 ]);
 
+const BEARER_FREE_PATHS = new Set([
+  "/api/v1/auth/login",
+  "/api/v1/auth/register",
+  "/api/v1/auth/csrf",
+  "/api/v1/auth/refresh"
+]);
+
 export function requestPath(url) {
   if (!url) {
     return "";
@@ -21,8 +28,16 @@ export function requestPath(url) {
   return url.split("?")[0];
 }
 
+export function isAuthRequest(path) {
+  return requestPath(path).startsWith("/api/v1/auth/");
+}
+
 export function pathRequiresCsrf(path) {
   return CSRF_PATHS.has(requestPath(path));
+}
+
+export function pathSkipsBearer(path) {
+  return BEARER_FREE_PATHS.has(requestPath(path));
 }
 
 export function buildCredentialedRequest({
@@ -35,10 +50,11 @@ export function buildCredentialedRequest({
   const headers = {
     Accept: "application/json"
   };
-  if (body !== undefined) {
+  const isMultipart = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isMultipart) {
     headers["Content-Type"] = "application/json";
   }
-  if (accessToken) {
+  if (accessToken && !pathSkipsBearer(path)) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
   if (csrfToken && pathRequiresCsrf(path)) {
