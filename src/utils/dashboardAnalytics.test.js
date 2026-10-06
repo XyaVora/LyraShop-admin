@@ -24,4 +24,20 @@ describe("dashboard period analytics", () => {
       expect.objectContaining({ x: 100, y: 0 })
     ]);
   });
+
+  it("uses payment time and subtracts partial refunds from revenue", () => {
+    const now = new Date("2026-09-28T12:00:00Z");
+    const analytics = dashboardAnalytics([{
+      createdAt: "2026-07-01T08:00:00Z",
+      paidAt: "2026-09-28T08:00:00Z",
+      paymentStatus: "PAID",
+      status: "DELIVERED",
+      totalAmount: 500,
+      refundedAmount: 125
+    }], now);
+
+    expect(analytics.current.revenue).toBe(375);
+    expect(analytics.current.paidCount).toBe(1);
+    expect(analytics.series.at(-1).revenue).toBe(375);
+  });
 });

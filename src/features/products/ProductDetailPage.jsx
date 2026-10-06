@@ -223,16 +223,16 @@ export default function ProductDetailPage() {
           >
             <div className="row g-2">
               <div className="col-md-6">
-                <input className="form-control" placeholder="Tên" {...productForm.register("name", { required: true })} />
+                <input type="text" className="form-control" aria-label="Tên sản phẩm" placeholder="Tên" {...productForm.register("name", { required: true })} />
               </div>
               <div className="col-md-6">
-                <input className="form-control" placeholder="Slug" {...productForm.register("slug", { required: true })} />
+                <input type="text" className="form-control" aria-label="Slug sản phẩm" placeholder="Slug" {...productForm.register("slug", { required: true })} />
               </div>
               <div className="col-md-4">
-                <input className="form-control" type="number" step="0.01" {...productForm.register("basePrice", { valueAsNumber: true })} />
+                <input className="form-control" aria-label="Giá cơ bản" type="number" step="0.01" {...productForm.register("basePrice", { valueAsNumber: true })} />
               </div>
               <div className="col-md-8">
-                <select className="form-select" {...productForm.register("categoryId", { required: true })}>
+                <select className="form-select" aria-label="Danh mục sản phẩm" {...productForm.register("categoryId", { required: true })}>
                   <option value="">Danh mục</option>
                   {(categories.data || []).filter((item) => item.active !== false).map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
@@ -240,7 +240,7 @@ export default function ProductDetailPage() {
                 </select>
               </div>
               <div className="col-12">
-                <textarea className="form-control" rows={2} placeholder="Mô tả" {...productForm.register("description")} />
+                <textarea className="form-control" aria-label="Mô tả sản phẩm" rows={2} placeholder="Mô tả" {...productForm.register("description")} />
               </div>
             </div>
             <button className="btn btn-lyra btn-sm mt-3" type="submit" disabled={updateProduct.isPending}>
@@ -306,19 +306,19 @@ export default function ProductDetailPage() {
               >
                 <div className="row g-2">
                   <div className="col-6">
-                    <input className="form-control" placeholder="SKU" {...variantForm.register("sku", { required: true })} />
+                    <input type="text" className="form-control" aria-label="SKU biến thể mới" placeholder="SKU" {...variantForm.register("sku", { required: true })} />
                   </div>
                   <div className="col-3">
-                    <input className="form-control" placeholder="Size" {...variantForm.register("size", { required: true })} />
+                    <input type="text" className="form-control" aria-label="Kích thước biến thể mới" placeholder="Size" {...variantForm.register("size", { required: true })} />
                   </div>
                   <div className="col-3">
-                    <input className="form-control" placeholder="Màu" {...variantForm.register("color", { required: true })} />
+                    <input type="text" className="form-control" aria-label="Màu biến thể mới" placeholder="Màu" {...variantForm.register("color", { required: true })} />
                   </div>
                   <div className="col-6">
-                    <input className="form-control" type="number" step="0.01" placeholder="Giá" {...variantForm.register("price", { valueAsNumber: true })} />
+                    <input className="form-control" aria-label="Giá biến thể mới" type="number" step="0.01" placeholder="Giá" {...variantForm.register("price", { valueAsNumber: true })} />
                   </div>
                   <div className="col-6">
-                    <input className="form-control" type="number" min="0" placeholder="Tồn kho" {...variantForm.register("stock", { valueAsNumber: true })} />
+                    <input className="form-control" aria-label="Tồn kho biến thể mới" type="number" min="0" placeholder="Tồn kho" {...variantForm.register("stock", { valueAsNumber: true })} />
                   </div>
                 </div>
                 <button className="btn btn-lyra btn-sm mt-3" type="submit" disabled={createVariant.isPending}>
@@ -352,8 +352,8 @@ export default function ProductDetailPage() {
                               adjust.mutate({ variantId: variant.id, stock, version: variant.version, reason: new FormData(event.currentTarget).get("reason") });
                             }}
                           >
-                            <input name="stock" type="number" min="0" className="form-control form-control-sm" defaultValue={variant.stock} />
-                            <input name="reason" className="form-control form-control-sm" placeholder="Lý do" required />
+                            <input name="stock" type="number" min="0" aria-label={`Tồn kho ${variant.sku}`} className="form-control form-control-sm" defaultValue={variant.stock} />
+                            <input name="reason" type="text" aria-label={`Lý do điều chỉnh ${variant.sku}`} className="form-control form-control-sm" placeholder="Lý do" required />
                             <button className="btn btn-outline-secondary btn-sm" type="submit">Tồn</button>
                           </form>
                           <form
@@ -374,10 +374,10 @@ export default function ProductDetailPage() {
                               });
                             }}
                           >
-                            <input name="sku" className="form-control form-control-sm" defaultValue={variant.sku} style={{ width: 110 }} />
-                            <input name="size" className="form-control form-control-sm" defaultValue={variant.size} style={{ width: 64 }} />
-                            <input name="color" className="form-control form-control-sm" defaultValue={variant.color} style={{ width: 80 }} />
-                            <input name="price" type="number" step="0.01" className="form-control form-control-sm" defaultValue={variant.price} style={{ width: 90 }} />
+                            <input name="sku" type="text" aria-label={`SKU ${variant.sku}`} className="form-control form-control-sm" defaultValue={variant.sku} style={{ width: 110 }} />
+                            <input name="size" type="text" aria-label={`Kích thước ${variant.sku}`} className="form-control form-control-sm" defaultValue={variant.size} style={{ width: 64 }} />
+                            <input name="color" type="text" aria-label={`Màu ${variant.sku}`} className="form-control form-control-sm" defaultValue={variant.color} style={{ width: 80 }} />
+                            <input name="price" type="number" aria-label={`Giá ${variant.sku}`} step="0.01" className="form-control form-control-sm" defaultValue={variant.price} style={{ width: 90 }} />
                             <button className="btn btn-outline-secondary btn-sm" type="submit">Lưu</button>
                             <button
                               type="button"
@@ -393,10 +393,11 @@ export default function ProductDetailPage() {
                   ))}
                 </ul>
               )}
-              <h3 className="h6 mt-4">Lịch sử điều chỉnh tồn</h3>
+              <h3 className="h6 mt-4">Lịch sử biến động tồn kho</h3>
               {inventoryHistory.isLoading ? <SkeletonBlock rows={3} /> : (
-                <DataTable rows={(inventoryHistory.data || []).slice(0, 20)} rowKey={(row) => row.id} emptyTitle="Chưa có điều chỉnh thủ công" columns={[
+                <DataTable rows={(inventoryHistory.data || []).slice(0, 20)} rowKey={(row) => row.id} emptyTitle="Chưa có biến động tồn kho" columns={[
                   { key: "variantId", header: "Biến thể", render: (row) => (product.variants || []).find((variant) => variant.id === row.variantId)?.sku || row.variantId },
+                  { key: "movementType", header: "Nguồn", render: (row) => ({ MANUAL: "Điều chỉnh tay", ORDER_PLACED: "Đặt hàng", ORDER_CANCELLED: "Hủy đơn", ORDER_EXPIRED: "Đơn hết hạn", RETURN_RECEIVED: "Nhận hàng hoàn" }[row.movementType] || row.movementType || "Điều chỉnh tay") },
                   { key: "change", header: "Thay đổi", render: (row) => `${row.stockBefore} → ${row.stockAfter}` },
                   { key: "reason", header: "Lý do" },
                   { key: "createdAt", header: "Thời gian", render: (row) => formatDateTime(row.createdAt) }
@@ -415,7 +416,7 @@ export default function ProductDetailPage() {
                   createImage.mutate(values);
                 })}
               >
-                <input className="form-control mb-2" placeholder="https://..." {...imageForm.register("url", { required: true })} />
+                <input type="url" className="form-control mb-2" aria-label="URL ảnh sản phẩm" placeholder="https://..." {...imageForm.register("url", { required: true })} />
                 <div className="form-check mb-2">
                   <input className="form-check-input" type="checkbox" id="primary" {...imageForm.register("primary")} />
                   <label className="form-check-label" htmlFor="primary">Ảnh chính</label>

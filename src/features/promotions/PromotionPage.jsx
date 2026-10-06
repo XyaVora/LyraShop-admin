@@ -10,6 +10,9 @@ import StatusBadge from "../../components/common/StatusBadge.jsx";
 import { formatDateTime, formatMoney } from "../../utils/format.js";
 import { activeClass } from "../../utils/status.js";
 import { useToastStore } from "../../store/toastStore.js";
+import SearchField from "../../components/common/SearchField.jsx";
+import PaginationBar from "../../components/tables/PaginationBar.jsx";
+import { useServerList } from "../../hooks/useServerList.js";
 
 const EMPTY_FORM = {
   name: "",
@@ -31,7 +34,8 @@ export default function PromotionPage() {
   const [editingId, setEditingId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
   const form = useForm({ defaultValues: EMPTY_FORM });
-  const promotions = useQuery({ queryKey: ["admin", "promotions"], queryFn: adminApi.listPromotions });
+  const list = useServerList({ defaultSortKey: "startsAt", defaultSortDir: "desc" });
+  const promotions = useQuery({ queryKey: ["admin", "promotions", "page", list.request], queryFn: () => adminApi.listPromotionsPage(list.request) });
   const products = useQuery({ queryKey: ["admin", "products"], queryFn: adminApi.listProducts });
 
   const productNames = useMemo(() => new Map(
@@ -193,9 +197,10 @@ export default function PromotionPage() {
           </form>
         </div>
         <div className="col-lg-7">
+          <div className="mb-3"><SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm tên hoặc mô tả khuyến mãi..." /></div>
           {promotions.isLoading ? <SkeletonBlock rows={6} /> : (
             <div className="d-flex flex-column gap-3">
-              {(promotions.data || []).map((promotion) => (
+              {(promotions.data?.content || []).map((promotion) => (
                 <div className="card" key={promotion.id}>
                   <div className="card-body">
                     <div className="d-flex justify-content-between gap-3">
@@ -233,7 +238,8 @@ export default function PromotionPage() {
                   </div>
                 </div>
               ))}
-              {(promotions.data || []).length === 0 && <div className="card card-body text-secondary">Chưa có chương trình khuyến mãi.</div>}
+              {(promotions.data?.content || []).length === 0 && <div className="card card-body text-secondary">Chưa có chương trình khuyến mãi.</div>}
+              <PaginationBar page={list.page} totalPages={Math.max(1, promotions.data?.totalPages || 1)} total={promotions.data?.totalElements || 0} pageSize={list.pageSize} onPageChange={list.setPage} onPageSizeChange={list.setPageSize} />
             </div>
           )}
         </div>

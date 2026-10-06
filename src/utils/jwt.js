@@ -26,5 +26,6 @@ export function readJwtRoles(accessToken) {
 }
 
 export function isAdminRoleSet(roles) {
-  return Array.isArray(roles) && roles.length === 1 && roles[0] === "ADMIN";
+  return Array.isArray(roles) && roles.length === 1
+    && ["ADMIN", "CATALOG_MANAGER", "ORDER_MANAGER", "SUPPORT"].includes(roles[0]);
 }

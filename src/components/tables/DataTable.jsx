@@ -11,6 +11,13 @@ export default function DataTable({
   sortDir,
   onSort
 }) {
+  function handleRowKeyDown(event, row) {
+    if (!onRowClick || (event.key !== "Enter" && event.key !== " ")) return;
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    onRowClick(row);
+  }
+
   if (!rows || rows.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
@@ -45,6 +52,9 @@ export default function DataTable({
               key={rowKey(row)}
               className={onRowClick ? "table-row-clickable" : undefined}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
+              onKeyDown={onRowClick ? (event) => handleRowKeyDown(event, row) : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              aria-label={onRowClick ? "Mở chi tiết" : undefined}
             >
               {columns.map((column) => (
                 <td

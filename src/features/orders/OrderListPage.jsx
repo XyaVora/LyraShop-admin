@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
@@ -10,7 +10,7 @@ import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import PaginationBar from "../../components/tables/PaginationBar.jsx";
-import { useListView } from "../../hooks/useListView.js";
+import { useServerList } from "../../hooks/useServerList.js";
 import { formatDateTime, formatMoney } from "../../utils/format.js";
 import {
   ORDER_STATUS_LABEL,
@@ -18,32 +18,25 @@ import {
   orderStatusClass,
   paymentStatusClass
 } from "../../utils/status.js";
-
-const SEARCH_FIELDS = ["id", "status", "paymentStatus", "shippingPhone"];
+import { loadAllPages } from "../../utils/csv.js";
 
 export default function OrderListPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState("all");
+  const list = useServerList({ defaultSortKey: "createdAt", defaultSortDir: "desc" });
+  const params = { ...list.request, status: statusFilter === "all" ? undefined : statusFilter };
   const query = useQuery({
-    queryKey: ["admin", "orders"],
-    queryFn: adminApi.listOrders
+    queryKey: ["admin", "orders", "page", params],
+    queryFn: () => adminApi.listOrdersPage(params)
   });
-  const extraFilter = useCallback((row) => (
-    statusFilter === "all" || row.status === statusFilter
-  ), [statusFilter]);
-  const list = useListView(query.data || [], {
-    fields: SEARCH_FIELDS,
-    defaultSortKey: "createdAt",
-    defaultSortDir: "desc",
-    extraFilter
-  });
+  const rows = query.data?.content || [];
 
   return (
     <div>
       <PageHeader
         title="Đơn hàng"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Đơn hàng" }]}
-        description="API đơn không trả userId. Lọc và phân trang chạy trên máy."
+        description="Tìm kiếm, lọc và phân trang được xử lý tại backend."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm mã đơn, trạng thái, SĐT..." />
@@ -63,7 +56,8 @@ export default function OrderListPage() {
         </select>
         <ExportCsvButton
           filename="lyra-orders.csv"
-          rows={list.allRows}
+          rows={rows}
+          loadRows={() => loadAllPages(adminApi.listOrdersPage, params)}
           columns={[
             { header: "id", value: (row) => row.id },
             { header: "totalAmount", value: (row) => row.totalAmount },
@@ -79,7 +73,7 @@ export default function OrderListPage() {
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={list.rows}
+              rows={rows}
               rowKey={(row) => row.id}
               onRowClick={(row) => navigate(`/orders/${row.id}`)}
               emptyTitle="Chưa có đơn hàng"
@@ -132,8 +126,8 @@ export default function OrderListPage() {
             />
             <PaginationBar
               page={list.page}
-              totalPages={list.totalPages}
-              total={list.total}
+              totalPages={Math.max(1, query.data?.totalPages || 1)}
+              total={query.data?.totalElements || 0}
               pageSize={list.pageSize}
               onPageChange={list.setPage}
               onPageSizeChange={list.setPageSize}

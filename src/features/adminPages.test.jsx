@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import OrderDetailPage from "./orders/OrderDetailPage.jsx";
 import PromotionPage from "./promotions/PromotionPage.jsx";
+import CategoryPage from "./categories/CategoryPage.jsx";
 import { adminApi } from "../services/api/adminApi.js";
 
 vi.mock("../services/api/adminApi.js", () => ({
@@ -20,7 +21,12 @@ vi.mock("../services/api/adminApi.js", () => ({
     rejectReturnRequest: vi.fn(),
     receiveReturnRequest: vi.fn(),
     createRefund: vi.fn(),
-    listPromotions: vi.fn(),
+    listCategories: vi.fn(),
+    createCategory: vi.fn(),
+    updateCategory: vi.fn(),
+    deactivateCategory: vi.fn(),
+    activateCategory: vi.fn(),
+    listPromotionsPage: vi.fn(),
     listProducts: vi.fn(),
     createPromotion: vi.fn(),
     updatePromotion: vi.fn(),
@@ -47,6 +53,17 @@ function renderRoute(element, route, pattern) {
 }
 
 describe("admin pages with current backend response fields", () => {
+  it("loads categories from the supported admin endpoint", async () => {
+    adminApi.listCategories.mockResolvedValue([
+      { id: "category-1", name: "Áo", slug: "ao", active: true }
+    ]);
+
+    renderRoute(<CategoryPage />, "/categories", "/categories");
+
+    expect((await screen.findAllByText("Áo")).length).toBeGreaterThanOrEqual(1);
+    expect(adminApi.listCategories).toHaveBeenCalledTimes(1);
+  });
+
   it("shows order notes, cost breakdown and tracking controls", async () => {
     adminApi.getOrder.mockResolvedValue({
       id: "11111111-1111-1111-1111-111111111111",
@@ -85,7 +102,7 @@ describe("admin pages with current backend response fields", () => {
     adminApi.listProducts.mockResolvedValue([
       { id: "p1", name: "Áo Lyra", active: true }
     ]);
-    adminApi.listPromotions.mockResolvedValue([
+    adminApi.listPromotionsPage.mockResolvedValue({ content: [
       {
         id: "sale-1",
         title: "Flash sale",
@@ -96,7 +113,7 @@ describe("admin pages with current backend response fields", () => {
         active: true,
         items: [{ productId: "p1", salePrice: 400000 }]
       }
-    ]);
+    ], page: 0, size: 10, totalElements: 1, totalPages: 1 });
 
     renderRoute(<PromotionPage />, "/promotions", "/promotions");
 
@@ -107,7 +124,7 @@ describe("admin pages with current backend response fields", () => {
 
   it("explains why a promotion cannot be saved instead of failing silently", async () => {
     adminApi.listProducts.mockResolvedValue([{ id: "p1", name: "Áo Lyra", active: true }]);
-    adminApi.listPromotions.mockResolvedValue([]);
+    adminApi.listPromotionsPage.mockResolvedValue({ content: [], page: 0, size: 10, totalElements: 0, totalPages: 0 });
 
     renderRoute(<PromotionPage />, "/promotions", "/promotions");
     await screen.findByText("Áo Lyra");
@@ -122,7 +139,7 @@ describe("admin pages with current backend response fields", () => {
 
   it("submits an edited promotion", async () => {
     adminApi.listProducts.mockResolvedValue([{ id: "p1", name: "Áo Lyra", active: true }]);
-    adminApi.listPromotions.mockResolvedValue([{
+    adminApi.listPromotionsPage.mockResolvedValue({ content: [{
       id: "sale-1",
       title: "Flash sale",
       description: "Cuối tuần",
@@ -131,7 +148,7 @@ describe("admin pages with current backend response fields", () => {
       endsAt: "2026-09-30T01:00:00Z",
       active: true,
       items: [{ productId: "p1", salePrice: 400000 }]
-    }]);
+    }], page: 0, size: 10, totalElements: 1, totalPages: 1 });
     adminApi.updatePromotion.mockResolvedValue({ id: "sale-1" });
 
     renderRoute(<PromotionPage />, "/promotions", "/promotions");

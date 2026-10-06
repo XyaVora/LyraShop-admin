@@ -234,7 +234,7 @@ export default function OrderDetailPage() {
         )}
         {order.status === "PENDING" && (
           <form className="d-flex gap-2 mt-3" onSubmit={(event) => { event.preventDefault(); cancelMutation.mutate(); }}>
-            <input className="form-control form-control-sm" value={cancelReason} maxLength={500}
+            <input type="text" aria-label="Lý do hủy đơn" className="form-control form-control-sm" value={cancelReason} maxLength={500}
               onChange={(event) => setCancelReason(event.target.value)} placeholder="Lý do hủy đơn" required />
             <button type="submit" className="btn btn-outline-danger btn-sm" disabled={cancelMutation.isPending}>Hủy đơn</button>
           </form>
@@ -263,7 +263,7 @@ export default function OrderDetailPage() {
               )}
               {["REQUESTED", "APPROVED"].includes(returnRequest.data.status) && (
                 <div>
-                  <textarea className="form-control form-control-sm mb-2" value={decisionNote} maxLength={500}
+                  <textarea aria-label="Ghi chú xử lý trả hàng" className="form-control form-control-sm mb-2" value={decisionNote} maxLength={500}
                     onChange={(event) => setDecisionNote(event.target.value)} placeholder="Ghi chú xử lý" />
                   <div className="d-flex gap-2">
                     {returnRequest.data.status === "REQUESTED" && <button type="button" className="btn btn-lyra btn-sm" onClick={() => returnMutation.mutate({ action: "approve", note: decisionNote })}>Duyệt trả hàng</button>}
@@ -278,12 +278,12 @@ export default function OrderDetailPage() {
       )}
       {order.paymentStatus === "PAID" && (order.status === "CANCELLED" || ["RECEIVED", "PARTIALLY_REFUNDED"].includes(order.returnStatus)) && (
         <form className="card card-body mb-3" onSubmit={refundForm.handleSubmit((values) => refundMutation.mutate(values))}>
-          <h2 className="h6">Ghi nhận hoàn tiền</h2>
-          <p className="small text-secondary">Nhập số tiền thực tế đã hoàn qua VNPay, ngân hàng hoặc tiền mặt. Mã tham chiếu phải duy nhất.</p>
+          <h2 className="h6">Ghi nhận hoàn tiền thủ công</h2>
+          <p className="small text-secondary">Chỉ xác nhận sau khi tiền đã được hoàn ngoài hệ thống qua VNPay, ngân hàng hoặc tiền mặt. Thao tác này chỉ lưu sổ theo dõi, không tự chuyển tiền. Mã tham chiếu phải duy nhất.</p>
           <div className="row g-2">
-            <div className="col-md-3"><input type="number" min="0.01" step="0.01" className="form-control" placeholder="Số tiền" {...refundForm.register("amount", { required: true, valueAsNumber: true, min: 0.01 })} /></div>
-            <div className="col-md-4"><input className="form-control" placeholder="Mã giao dịch hoàn" {...refundForm.register("reference", { required: true, maxLength: 100 })} /></div>
-            <div className="col-md-5"><input className="form-control" placeholder="Ghi chú" {...refundForm.register("note", { maxLength: 500 })} /></div>
+            <div className="col-md-3"><input aria-label="Số tiền hoàn" type="number" min="0.01" step="0.01" className="form-control" placeholder="Số tiền" {...refundForm.register("amount", { required: true, valueAsNumber: true, min: 0.01 })} /></div>
+            <div className="col-md-4"><input type="text" aria-label="Mã giao dịch hoàn" className="form-control" placeholder="Mã giao dịch hoàn" {...refundForm.register("reference", { required: true, maxLength: 100 })} /></div>
+            <div className="col-md-5"><input type="text" aria-label="Ghi chú hoàn tiền" className="form-control" placeholder="Ghi chú" {...refundForm.register("note", { maxLength: 500 })} /></div>
           </div>
           <button type="submit" className="btn btn-lyra btn-sm mt-2" disabled={refundMutation.isPending}>Xác nhận đã hoàn tiền</button>
         </form>
@@ -320,11 +320,11 @@ export default function OrderDetailPage() {
             <div className="row g-2">
               <div className="col-md-6">
                 <label className="form-label" htmlFor="shipping-carrier">Đơn vị vận chuyển</label>
-                <input id="shipping-carrier" className="form-control" {...trackingForm.register("carrier", { required: true, maxLength: 100 })} />
+                <input id="shipping-carrier" type="text" className="form-control" {...trackingForm.register("carrier", { required: true, maxLength: 100 })} />
               </div>
               <div className="col-md-6">
                 <label className="form-label" htmlFor="tracking-code">Mã vận đơn</label>
-                <input id="tracking-code" className="form-control" {...trackingForm.register("trackingCode", { required: true, maxLength: 100 })} />
+                <input id="tracking-code" type="text" className="form-control" {...trackingForm.register("trackingCode", { required: true, maxLength: 100 })} />
               </div>
               <div className="col-md-7">
                 <label className="form-label" htmlFor="tracking-url">Liên kết theo dõi</label>
@@ -356,7 +356,7 @@ export default function OrderDetailPage() {
             <label className="form-label" htmlFor="tracking-event-description">Mô tả</label>
             <textarea id="tracking-event-description" className="form-control mb-2" rows="2" {...trackingEventForm.register("description", { required: true, maxLength: 500 })} />
             <label className="form-label" htmlFor="tracking-event-location">Địa điểm</label>
-            <input id="tracking-event-location" className="form-control mb-2" {...trackingEventForm.register("location", { maxLength: 255 })} />
+            <input id="tracking-event-location" type="text" className="form-control mb-2" {...trackingEventForm.register("location", { maxLength: 255 })} />
             <label className="form-label" htmlFor="tracking-event-time">Thời gian</label>
             <input id="tracking-event-time" type="datetime-local" className="form-control" {...trackingEventForm.register("occurredAt", { required: true })} />
             <button type="submit" className="btn btn-lyra btn-sm mt-3" disabled={trackingEventMutation.isPending}>Thêm sự kiện</button>

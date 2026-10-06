@@ -25,3 +25,14 @@ export function downloadCsv(filename, csv) {
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+export async function loadAllPages(fetchPage, params = {}) {
+  const first = await fetchPage({ ...params, page: 0, size: 100 });
+  const rows = [...(first.content || [])];
+  const totalPages = Math.min(Number(first.totalPages) || 1, 100);
+  for (let page = 1; page < totalPages; page += 1) {
+    const result = await fetchPage({ ...params, page, size: 100 });
+    rows.push(...(result.content || []));
+  }
+  return rows;
+}

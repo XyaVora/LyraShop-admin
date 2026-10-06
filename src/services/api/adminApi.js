@@ -30,11 +30,23 @@ export const adminApi = {
   dashboard() {
     return requestEndpoint(admin.dashboard).then((res) => res.data);
   },
+  listNotifications() {
+    return requestEndpoint(admin.notifications).then((res) => res.data);
+  },
+  readNotification(key) {
+    return requestEndpoint(admin.readNotification(key)).then((res) => res.data);
+  },
+  readAllNotifications() {
+    return requestEndpoint(admin.readAllNotifications).then((res) => res.data);
+  },
   search(query) {
     return api.get(admin.search.path, { params: { q: query } }).then((res) => res.data);
   },
   listProducts() {
     return requestEndpoint(admin.products).then((res) => res.data);
+  },
+  listProductsPage(params) {
+    return api.get(admin.productsPage.path, { params }).then((res) => res.data);
   },
   getProduct(id) {
     return requestEndpoint(admin.product(id)).then((res) => res.data);
@@ -54,6 +66,7 @@ export const adminApi = {
   listCategories() {
     return requestEndpoint(admin.categories).then((res) => res.data);
   },
+  listCategoriesPage(params) { return api.get(admin.categoriesPage.path, { params }).then((res) => res.data); },
   listPublicCategories() {
     return requestEndpoint(published.categories).then((res) => res.data);
   },
@@ -78,6 +91,9 @@ export const adminApi = {
   listOrders() {
     return requestEndpoint(admin.orders).then((res) => res.data);
   },
+  listOrdersPage(params) {
+    return api.get(admin.ordersPage.path, { params }).then((res) => res.data);
+  },
   getOrder(id) {
     return requestEndpoint(admin.order(id)).then((res) => res.data);
   },
@@ -90,6 +106,7 @@ export const adminApi = {
   listReturnRequests() {
     return requestEndpoint(admin.returnRequests).then((res) => res.data);
   },
+  listReturnRequestsPage(params) { return api.get(admin.returnRequestsPage.path, { params }).then((res) => res.data); },
   getOrderReturnRequest(id) {
     return requestEndpoint(admin.orderReturnRequest(id)).then((res) => res.data);
   },
@@ -120,6 +137,15 @@ export const adminApi = {
   listUsers() {
     return requestEndpoint(admin.users).then((res) => res.data);
   },
+  listUsersPage(params) {
+    return api.get(admin.usersPage.path, { params }).then((res) => res.data);
+  },
+  getUser(id) {
+    return requestEndpoint(admin.user(id)).then((res) => res.data);
+  },
+  addUserSupportNote(id, note) {
+    return requestEndpoint(admin.addUserSupportNote(id), { note: String(note).trim() }).then((res) => res.data);
+  },
   updateUserStatus(id, active) {
     return requestEndpoint(admin.updateUserStatus(id), updateUserStatusBody(active)).then((res) => res.data);
   },
@@ -129,12 +155,19 @@ export const adminApi = {
   listReviews() {
     return requestEndpoint(admin.reviews).then((res) => res.data);
   },
+  listReviewsPage(params) {
+    return api.get(admin.reviewsPage.path, { params }).then((res) => res.data);
+  },
   deleteReview(id) {
     return requestEndpoint(admin.deleteReview(id)).then((res) => res.data);
+  },
+  moderateReview(id, status, note) {
+    return requestEndpoint(admin.moderateReview(id), { status, note }).then((res) => res.data);
   },
   listPromotions() {
     return requestEndpoint(admin.promotions).then((res) => res.data);
   },
+  listPromotionsPage(params) { return api.get(admin.promotionsPage.path, { params }).then((res) => res.data); },
   createPromotion(input) {
     return requestEndpoint(admin.createPromotion, promotionBody(input)).then((res) => res.data);
   },
@@ -145,10 +178,12 @@ export const adminApi = {
     return requestEndpoint(admin.deletePromotion(id)).then((res) => res.data);
   },
   listVouchers() { return requestEndpoint(admin.vouchers).then((res) => res.data); },
+  listVouchersPage(params) { return api.get(admin.vouchersPage.path, { params }).then((res) => res.data); },
   createVoucher(input) { return requestEndpoint(admin.createVoucher, voucherBody(input)).then((res) => res.data); },
   updateVoucher(id, input) { return requestEndpoint(admin.updateVoucher(id), voucherBody(input)).then((res) => res.data); },
   deleteVoucher(id) { return requestEndpoint(admin.deleteVoucher(id)).then((res) => res.data); },
   listAuditLogs() { return requestEndpoint(admin.auditLogs).then((res) => res.data); },
+  listAuditLogsPage(params) { return api.get(admin.auditLogsPage.path, { params }).then((res) => res.data); },
   createVariant(productId, input) {
     return requestEndpoint(admin.createVariant(productId), createVariantBody(input)).then((res) => res.data);
   },

@@ -38,6 +38,10 @@ export default function CategoryPage() {
     queryKey: ["admin", "categories"],
     queryFn: adminApi.listCategories
   });
+  const list = useListView(query.data || [], {
+    fields: SEARCH_FIELDS,
+    defaultSortKey: "name"
+  });
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: { name: "", slug: "", description: "", parentId: "" }
@@ -99,11 +103,6 @@ export default function CategoryPage() {
     }
   }
 
-  const list = useListView(query.data || [], {
-    fields: SEARCH_FIELDS,
-    defaultSortKey: "name"
-  });
-
   return (
     <div>
       <PageHeader
@@ -117,12 +116,16 @@ export default function CategoryPage() {
         <div className="col-lg-5">
           <form className="card card-body" onSubmit={form.handleSubmit(submit)}>
             <h2 className="h6">{editingId ? "Sửa danh mục" : "Tạo danh mục"}</h2>
-            <input className="form-control mb-2" placeholder="Tên" {...form.register("name", {
+            <label className="form-label" htmlFor="category-name">Tên</label>
+            <input id="category-name" type="text" className="form-control mb-2" {...form.register("name", {
               onChange: (event) => form.setValue("slug", slugify(event.target.value))
             })} />
-            <input className="form-control mb-2" placeholder="Slug" {...form.register("slug")} />
-            <textarea className="form-control mb-2" placeholder="Mô tả" {...form.register("description")} />
-            <select className="form-select mb-3" {...form.register("parentId")}>
+            <label className="form-label" htmlFor="category-slug">Slug</label>
+            <input id="category-slug" type="text" className="form-control mb-2" {...form.register("slug")} />
+            <label className="form-label" htmlFor="category-description">Mô tả</label>
+            <textarea id="category-description" className="form-control mb-2" {...form.register("description")} />
+            <label className="form-label" htmlFor="category-parent">Danh mục cha</label>
+            <select id="category-parent" className="form-select mb-3" {...form.register("parentId")}>
               <option value="">Không có danh mục cha</option>
               {(query.data || []).filter((item) => item.id !== editingId && item.active !== false).map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>

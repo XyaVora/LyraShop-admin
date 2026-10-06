@@ -10,8 +10,12 @@ function utcDay(date) {
 }
 
 function inPeriod(order, start, end) {
-  const createdAt = validDate(order.createdAt);
-  return createdAt && createdAt >= start && createdAt < end;
+  const occurredAt = validDate(order.paidAt || order.createdAt);
+  return occurredAt && occurredAt >= start && occurredAt < end;
+}
+
+function netRevenue(order) {
+  return Math.max(0, (Number(order.totalAmount) || 0) - (Number(order.refundedAmount) || 0));
 }
 
 export function percentageChange(current, previous) {
@@ -24,7 +28,7 @@ export function percentageChange(current, previous) {
 export function summarizeOrders(orders, start, end) {
   const periodOrders = (orders || []).filter((order) => inPeriod(order, start, end));
   const paidOrders = periodOrders.filter((order) => order.paymentStatus === "PAID");
-  const revenue = paidOrders.reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+  const revenue = paidOrders.reduce((sum, order) => sum + netRevenue(order), 0);
   const delivered = periodOrders.filter((order) => order.status === "DELIVERED").length;
   return {
     revenue,
@@ -46,7 +50,7 @@ export function dashboardAnalytics(orders, now = new Date()) {
     const dayEnd = new Date(start.getTime() + DAY_MS);
     const revenue = (orders || [])
       .filter((order) => order.paymentStatus === "PAID" && inPeriod(order, start, dayEnd))
-      .reduce((sum, order) => sum + (Number(order.totalAmount) || 0), 0);
+      .reduce((sum, order) => sum + netRevenue(order), 0);
     return { date: start, revenue };
   });
   return {

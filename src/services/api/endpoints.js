@@ -229,8 +229,12 @@ export function authEndpoints() {
 export function adminEndpoints() {
   return {
     dashboard: { method: "GET", path: "/api/v1/admin/dashboard" },
+    notifications: { method: "GET", path: "/api/v1/admin/notifications" },
+    readNotification: (key) => ({ method: "PUT", path: `/api/v1/admin/notifications/${encodeURIComponent(key)}/read` }),
+    readAllNotifications: { method: "PUT", path: "/api/v1/admin/notifications/read-all" },
     search: { method: "GET", path: "/api/v1/admin/search" },
     products: { method: "GET", path: "/api/v1/admin/products" },
+    productsPage: { method: "GET", path: "/api/v1/admin/products/page" },
     product: (id) => ({ method: "GET", path: `/api/v1/admin/products/${id}` }),
     createProduct: { method: "POST", path: "/api/v1/admin/products" },
     updateProduct: (id) => ({
@@ -246,6 +250,7 @@ export function adminEndpoints() {
       path: `/api/v1/admin/products/${id}/deactivate`
     }),
     categories: { method: "GET", path: "/api/v1/admin/categories" },
+    categoriesPage: { method: "GET", path: "/api/v1/admin/categories/page" },
     createCategory: { method: "POST", path: "/api/v1/admin/categories" },
     updateCategory: (id) => ({
       method: "PUT",
@@ -260,6 +265,7 @@ export function adminEndpoints() {
       path: `/api/v1/admin/categories/${id}/activate`
     }),
     orders: { method: "GET", path: "/api/v1/admin/orders" },
+    ordersPage: { method: "GET", path: "/api/v1/admin/orders/page" },
     order: (id) => ({ method: "GET", path: `/api/v1/admin/orders/${id}` }),
     updateOrderStatus: (id) => ({
       method: "PUT",
@@ -270,6 +276,7 @@ export function adminEndpoints() {
       path: `/api/v1/admin/orders/${id}/cancel`
     }),
     returnRequests: { method: "GET", path: "/api/v1/admin/orders/return-requests" },
+    returnRequestsPage: { method: "GET", path: "/api/v1/admin/orders/return-requests/page" },
     orderReturnRequest: (id) => ({
       method: "GET",
       path: `/api/v1/admin/orders/${id}/return-request`
@@ -307,6 +314,9 @@ export function adminEndpoints() {
       path: `/api/v1/admin/orders/${id}/tracking-events`
     }),
     users: { method: "GET", path: "/api/v1/admin/users" },
+    usersPage: { method: "GET", path: "/api/v1/admin/users/page" },
+    user: (id) => ({ method: "GET", path: `/api/v1/admin/users/${id}` }),
+    addUserSupportNote: (id) => ({ method: "POST", path: `/api/v1/admin/users/${id}/support-notes` }),
     updateUserStatus: (id) => ({
       method: "PUT",
       path: `/api/v1/admin/users/${id}/status`
@@ -316,11 +326,14 @@ export function adminEndpoints() {
       path: `/api/v1/admin/users/${id}/role`
     }),
     reviews: { method: "GET", path: "/api/v1/admin/reviews" },
+    reviewsPage: { method: "GET", path: "/api/v1/admin/reviews/page" },
     deleteReview: (id) => ({
       method: "DELETE",
       path: `/api/v1/admin/reviews/${id}`
     }),
+    moderateReview: (id) => ({ method: "PUT", path: `/api/v1/admin/reviews/${id}/moderation` }),
     promotions: { method: "GET", path: "/api/v1/admin/promotions" },
+    promotionsPage: { method: "GET", path: "/api/v1/admin/promotions/page" },
     createPromotion: { method: "POST", path: "/api/v1/admin/promotions" },
     updatePromotion: (id) => ({
       method: "PUT",
@@ -331,10 +344,12 @@ export function adminEndpoints() {
       path: `/api/v1/admin/promotions/${id}`
     }),
     vouchers: { method: "GET", path: "/api/v1/admin/vouchers" },
+    vouchersPage: { method: "GET", path: "/api/v1/admin/vouchers/page" },
     createVoucher: { method: "POST", path: "/api/v1/admin/vouchers" },
     updateVoucher: (id) => ({ method: "PUT", path: `/api/v1/admin/vouchers/${id}` }),
     deleteVoucher: (id) => ({ method: "DELETE", path: `/api/v1/admin/vouchers/${id}` }),
     auditLogs: { method: "GET", path: "/api/v1/admin/audit-logs" },
+    auditLogsPage: { method: "GET", path: "/api/v1/admin/audit-logs/page" },
     createVariant: (productId) => ({
       method: "POST",
       path: `/api/v1/admin/products/${productId}/variants`

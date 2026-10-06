@@ -85,7 +85,7 @@ export default function ProductCreatePage() {
         </div>
         <div className="mb-3">
           <label className="form-label" htmlFor="slug">Slug</label>
-          <input id="slug" className="form-control" {...form.register("slug")} />
+          <input id="slug" type="text" className="form-control" {...form.register("slug")} />
         </div>
         <div className="mb-3">
           <label className="form-label" htmlFor="description">Mô tả</label>

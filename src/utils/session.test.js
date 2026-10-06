@@ -35,5 +35,8 @@ describe("auth session handling", () => {
   it("rejects a CUSTOMER token for admin screens", () => {
     expect(() => assertAdminAccessToken(jwtWithRoles(["CUSTOMER"]))).toThrow(/Admin role is required/);
     expect(assertAdminAccessToken(jwtWithRoles(["ADMIN"]))).toBe("ADMIN");
+    expect(assertAdminAccessToken(jwtWithRoles(["CATALOG_MANAGER"]))).toBe("CATALOG_MANAGER");
+    expect(assertAdminAccessToken(jwtWithRoles(["ORDER_MANAGER"]))).toBe("ORDER_MANAGER");
+    expect(assertAdminAccessToken(jwtWithRoles(["SUPPORT"]))).toBe("SUPPORT");
   });
 });

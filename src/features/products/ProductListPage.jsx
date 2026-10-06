@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
@@ -11,12 +11,11 @@ import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import PaginationBar from "../../components/tables/PaginationBar.jsx";
-import { useListView } from "../../hooks/useListView.js";
+import { useServerList } from "../../hooks/useServerList.js";
 import { formatMoney } from "../../utils/format.js";
 import { activeClass } from "../../utils/status.js";
+import { loadAllPages } from "../../utils/csv.js";
 import { useToastStore } from "../../store/toastStore.js";
-
-const SEARCH_FIELDS = ["name", "slug"];
 
 export default function ProductListPage() {
   const navigate = useNavigate();
@@ -24,24 +23,13 @@ export default function ProductListPage() {
   const pushToast = useToastStore((state) => state.push);
   const [activeFilter, setActiveFilter] = useState("all");
   const [pendingHide, setPendingHide] = useState(null);
+  const list = useServerList({ defaultSortKey: "name" });
+  const params = { ...list.request, active: activeFilter === "all" ? undefined : activeFilter === "active" };
   const query = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: adminApi.listProducts
+    queryKey: ["admin", "products", "page", params],
+    queryFn: () => adminApi.listProductsPage(params)
   });
-  const extraFilter = useCallback((row) => {
-    if (activeFilter === "active") {
-      return row.active;
-    }
-    if (activeFilter === "hidden") {
-      return !row.active;
-    }
-    return true;
-  }, [activeFilter]);
-  const list = useListView(query.data || [], {
-    fields: SEARCH_FIELDS,
-    defaultSortKey: "name",
-    extraFilter
-  });
+  const rows = query.data?.content || [];
   const activate = useMutation({
     mutationFn: adminApi.activateProduct,
     onSuccess: () => {
@@ -85,7 +73,8 @@ export default function ProductListPage() {
         </select>
         <ExportCsvButton
           filename="lyra-products.csv"
-          rows={list.allRows}
+          rows={rows}
+          loadRows={() => loadAllPages(adminApi.listProductsPage, params)}
           columns={[
             { header: "id", value: (row) => row.id },
             { header: "name", value: (row) => row.name },
@@ -106,7 +95,7 @@ export default function ProductListPage() {
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={list.rows}
+              rows={rows}
               rowKey={(row) => row.id}
               onRowClick={(row) => navigate(`/products/${row.id}`)}
               emptyTitle="Chưa có sản phẩm"
@@ -153,8 +142,8 @@ export default function ProductListPage() {
             />
             <PaginationBar
               page={list.page}
-              totalPages={list.totalPages}
-              total={list.total}
+              totalPages={Math.max(1, query.data?.totalPages || 1)}
+              total={query.data?.totalElements || 0}
               pageSize={list.pageSize}
               onPageChange={list.setPage}
               onPageSizeChange={list.setPageSize}

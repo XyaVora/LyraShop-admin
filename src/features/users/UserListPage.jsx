@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
 import ConfirmModal from "../../components/common/ConfirmModal.jsx";
@@ -10,24 +11,29 @@ import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import PaginationBar from "../../components/tables/PaginationBar.jsx";
-import { useListView } from "../../hooks/useListView.js";
+import { useServerList } from "../../hooks/useServerList.js";
 import { useAuthStore } from "../../store/authStore.js";
 import { activeClass } from "../../utils/status.js";
 import { useToastStore } from "../../store/toastStore.js";
-
-const SEARCH_FIELDS = ["email", "fullName", "phone", "role"];
+import { loadAllPages } from "../../utils/csv.js";
 
 export default function UserListPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const subject = useAuthStore((state) => state.subject);
+  const currentRole = useAuthStore((state) => state.role);
+  const canManageUsers = currentRole === "ADMIN";
   const pushToast = useToastStore((state) => state.push);
   const [roleFilter, setRoleFilter] = useState("all");
   const [pendingUser, setPendingUser] = useState(null);
   const [pendingRole, setPendingRole] = useState(null);
+  const list = useServerList({ defaultSortKey: "email" });
+  const params = { ...list.request, role: roleFilter === "all" ? undefined : roleFilter };
   const query = useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: adminApi.listUsers
+    queryKey: ["admin", "users", "page", params],
+    queryFn: () => adminApi.listUsersPage(params)
   });
+  const rows = query.data?.content || [];
   const mutation = useMutation({
     mutationFn: ({ id, active }) => adminApi.updateUserStatus(id, active),
     onSuccess: () => {
@@ -42,21 +48,12 @@ export default function UserListPage() {
       pushToast("Đã đổi vai trò");
     }
   });
-  const extraFilter = useCallback((row) => (
-    roleFilter === "all" || row.role === roleFilter
-  ), [roleFilter]);
-  const list = useListView(query.data || [], {
-    fields: SEARCH_FIELDS,
-    defaultSortKey: "email",
-    extraFilter
-  });
-
   return (
     <div>
       <PageHeader
         title="Tài khoản"
         crumbs={[{ label: "Tổng quan", to: "/" }, { label: "Tài khoản" }]}
-        description="Không khóa được chính mình. Đổi vai trò dùng PUT /role; không hạ được admin cuối (409 LAST_ADMIN)."
+        description="ADMIN quản lý trạng thái và phân vai; hệ thống không cho khóa chính mình hoặc hạ admin hoạt động cuối cùng."
       />
       <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
         <SearchField value={list.queryText} onChange={list.setQueryText} placeholder="Tìm email, tên, SĐT..." />
@@ -71,11 +68,15 @@ export default function UserListPage() {
         >
           <option value="all">Tất cả vai trò</option>
           <option value="ADMIN">Quản trị</option>
+          <option value="CATALOG_MANAGER">Quản lý catalog</option>
+          <option value="ORDER_MANAGER">Quản lý đơn hàng</option>
+          <option value="SUPPORT">Hỗ trợ khách hàng</option>
           <option value="CUSTOMER">Khách</option>
         </select>
         <ExportCsvButton
           filename="lyra-users.csv"
-          rows={list.allRows}
+          rows={rows}
+          loadRows={() => loadAllPages(adminApi.listUsersPage, params)}
           columns={[
             { header: "id", value: (row) => row.id },
             { header: "email", value: (row) => row.email },
@@ -93,8 +94,9 @@ export default function UserListPage() {
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={list.rows}
+              rows={rows}
               rowKey={(row) => row.id}
+              onRowClick={(row) => navigate(`/users/${row.id}`)}
               emptyTitle="Chưa có tài khoản"
               emptyDescription="Thử đổi bộ lọc tìm kiếm."
               sortKey={list.sortKey}
@@ -108,7 +110,7 @@ export default function UserListPage() {
                   key: "role",
                   header: "Vai trò",
                   sortable: true,
-                  render: (row) => (row.role === "ADMIN" ? "Quản trị" : "Khách")
+                  render: (row) => ({ ADMIN: "Quản trị", CATALOG_MANAGER: "Quản lý catalog", ORDER_MANAGER: "Quản lý đơn hàng", SUPPORT: "Hỗ trợ", CUSTOMER: "Khách" }[row.role] || row.role)
                 },
                 {
                   key: "active",
@@ -124,7 +126,9 @@ export default function UserListPage() {
                 {
                   key: "actions",
                   header: "",
+                  stopRowClick: true,
                   render: (row) => {
+                    if (!canManageUsers) return null;
                     const isSelf = row.id === subject;
                     return (
                       <div className="d-flex gap-2">
@@ -136,14 +140,9 @@ export default function UserListPage() {
                         >
                           {row.active ? "Khóa" : "Mở"}
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-outline-secondary btn-sm"
-                          disabled={isSelf || roleMutation.isPending}
-                          onClick={() => setPendingRole(row)}
-                        >
-                          {row.role === "ADMIN" ? "Thành khách" : "Thành admin"}
-                        </button>
+                        <select className="form-select form-select-sm" value={row.role} disabled={isSelf || roleMutation.isPending} onChange={(event) => setPendingRole({ user: row, role: event.target.value })} aria-label={`Đổi vai trò ${row.email}`}>
+                          <option value="CUSTOMER">Khách</option><option value="ADMIN">Quản trị</option><option value="CATALOG_MANAGER">Quản lý catalog</option><option value="ORDER_MANAGER">Quản lý đơn hàng</option><option value="SUPPORT">Hỗ trợ</option>
+                        </select>
                       </div>
                     );
                   }
@@ -152,8 +151,8 @@ export default function UserListPage() {
             />
             <PaginationBar
               page={list.page}
-              totalPages={list.totalPages}
-              total={list.total}
+              totalPages={Math.max(1, query.data?.totalPages || 1)}
+              total={query.data?.totalElements || 0}
               pageSize={list.pageSize}
               onPageChange={list.setPage}
               onPageSizeChange={list.setPageSize}
@@ -178,16 +177,14 @@ export default function UserListPage() {
       <ConfirmModal
         open={Boolean(pendingRole)}
         title="Đổi vai trò"
-        message={pendingRole?.role === "ADMIN"
-          ? `Hạ ${pendingRole?.email || ""} xuống khách.`
-          : `Nâng ${pendingRole?.email || ""} thành quản trị.`}
+        message={pendingRole ? `Đổi vai trò của ${pendingRole.user.email} thành ${{ ADMIN: "Quản trị", CATALOG_MANAGER: "Quản lý catalog", ORDER_MANAGER: "Quản lý đơn hàng", SUPPORT: "Hỗ trợ", CUSTOMER: "Khách" }[pendingRole.role]}.` : ""}
         confirmLabel="Đổi"
-        danger={pendingRole?.role === "ADMIN"}
+        danger={pendingRole?.user?.role === "ADMIN"}
         onCancel={() => setPendingRole(null)}
         onConfirm={() => {
           roleMutation.mutate({
-            id: pendingRole.id,
-            role: pendingRole.role === "ADMIN" ? "CUSTOMER" : "ADMIN"
+            id: pendingRole.user.id,
+            role: pendingRole.role
           });
           setPendingRole(null);
         }}

@@ -40,6 +40,7 @@ export const useAuthStore = create((set, get) => ({
     set(emptyAuthState());
   },
   isAuthenticated() {
-    return Boolean(get().accessToken) && get().role === "ADMIN";
+    return Boolean(get().accessToken)
+      && ["ADMIN", "CATALOG_MANAGER", "ORDER_MANAGER", "SUPPORT"].includes(get().role);
   }
 }));

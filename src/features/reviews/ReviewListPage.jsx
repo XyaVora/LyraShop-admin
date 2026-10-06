@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../services/api/adminApi.js";
 import ErrorAlert from "../../components/common/ErrorAlert.jsx";
@@ -9,21 +9,24 @@ import SearchField from "../../components/common/SearchField.jsx";
 import SkeletonBlock from "../../components/common/SkeletonBlock.jsx";
 import DataTable from "../../components/tables/DataTable.jsx";
 import PaginationBar from "../../components/tables/PaginationBar.jsx";
-import { useListView } from "../../hooks/useListView.js";
+import { useServerList } from "../../hooks/useServerList.js";
 import { formatDateTime } from "../../utils/format.js";
 import { useToastStore } from "../../store/toastStore.js";
-
-const SEARCH_FIELDS = ["comment", "productId", "userId", "rating"];
+import { loadAllPages } from "../../utils/csv.js";
 
 export default function ReviewListPage() {
   const queryClient = useQueryClient();
   const pushToast = useToastStore((state) => state.push);
   const [ratingFilter, setRatingFilter] = useState("all");
+  const [moderationFilter, setModerationFilter] = useState("all");
   const [pendingReview, setPendingReview] = useState(null);
+  const list = useServerList({ defaultSortKey: "createdAt", defaultSortDir: "desc" });
+  const params = { ...list.request, rating: ratingFilter === "all" ? undefined : Number(ratingFilter), moderationStatus: moderationFilter === "all" ? undefined : moderationFilter };
   const query = useQuery({
-    queryKey: ["admin", "reviews"],
-    queryFn: adminApi.listReviews
+    queryKey: ["admin", "reviews", "page", params],
+    queryFn: () => adminApi.listReviewsPage(params)
   });
+  const rows = query.data?.content || [];
   const mutation = useMutation({
     mutationFn: adminApi.deleteReview,
     onSuccess: () => {
@@ -31,16 +34,13 @@ export default function ReviewListPage() {
       pushToast("Đã xóa đánh giá");
     }
   });
-  const extraFilter = useCallback((row) => (
-    ratingFilter === "all" || Number(row.rating) === Number(ratingFilter)
-  ), [ratingFilter]);
-  const list = useListView(query.data || [], {
-    fields: SEARCH_FIELDS,
-    defaultSortKey: "createdAt",
-    defaultSortDir: "desc",
-    extraFilter
+  const moderation = useMutation({
+    mutationFn: ({ id, status }) => adminApi.moderateReview(id, status, status === "HIDDEN" ? "Ẩn bởi quản trị viên" : "Khôi phục bởi quản trị viên"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+      pushToast("Đã cập nhật trạng thái đánh giá");
+    }
   });
-
   return (
     <div>
       <PageHeader
@@ -64,9 +64,13 @@ export default function ReviewListPage() {
             <option key={rating} value={rating}>{rating} sao</option>
           ))}
         </select>
+        <select className="form-select form-select-sm list-filter" value={moderationFilter} onChange={(event) => { setModerationFilter(event.target.value); list.setPage(1); }} aria-label="Lọc trạng thái kiểm duyệt">
+          <option value="all">Tất cả kiểm duyệt</option><option value="PUBLISHED">Đang công khai</option><option value="HIDDEN">Đã ẩn</option>
+        </select>
         <ExportCsvButton
           filename="lyra-reviews.csv"
-          rows={list.allRows}
+          rows={rows}
+          loadRows={() => loadAllPages(adminApi.listReviewsPage, params)}
           columns={[
             { header: "id", value: (row) => row.id },
             { header: "productId", value: (row) => row.productId },
@@ -79,11 +83,12 @@ export default function ReviewListPage() {
       </div>
       {query.isError && <ErrorAlert error={query.error} />}
       {mutation.isError && <ErrorAlert error={mutation.error} />}
+      {moderation.isError && <ErrorAlert error={moderation.error} />}
       {query.isLoading ? <SkeletonBlock rows={6} /> : (
         <div className="card">
           <div className="card-body p-0">
             <DataTable
-              rows={list.rows}
+              rows={rows}
               rowKey={(row) => row.id}
               emptyTitle="Chưa có đánh giá"
               emptyDescription="Thử đổi bộ lọc điểm hoặc nội dung."
@@ -94,6 +99,7 @@ export default function ReviewListPage() {
                 { key: "id", header: "ID", sortable: true },
                 { key: "rating", header: "Điểm", sortable: true },
                 { key: "comment", header: "Nội dung", sortable: true },
+                { key: "moderationStatus", header: "Kiểm duyệt", render: (row) => row.moderationStatus === "HIDDEN" ? "Đã ẩn" : "Công khai" },
                 {
                   key: "createdAt",
                   header: "Lúc",
@@ -104,22 +110,15 @@ export default function ReviewListPage() {
                   key: "actions",
                   header: "",
                   render: (row) => (
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm"
-                      disabled={mutation.isPending}
-                      onClick={() => setPendingReview(row)}
-                    >
-                      Xóa
-                    </button>
+                    <div className="d-flex gap-2"><button type="button" className="btn btn-outline-secondary btn-sm" disabled={moderation.isPending} onClick={() => moderation.mutate({ id: row.id, status: row.moderationStatus === "HIDDEN" ? "PUBLISHED" : "HIDDEN" })}>{row.moderationStatus === "HIDDEN" ? "Công khai" : "Ẩn"}</button><button type="button" className="btn btn-outline-danger btn-sm" disabled={mutation.isPending} onClick={() => setPendingReview(row)}>Xóa</button></div>
                   )
                 }
               ]}
             />
             <PaginationBar
               page={list.page}
-              totalPages={list.totalPages}
-              total={list.total}
+              totalPages={Math.max(1, query.data?.totalPages || 1)}
+              total={query.data?.totalElements || 0}
               pageSize={list.pageSize}
               onPageChange={list.setPage}
               onPageSizeChange={list.setPageSize}

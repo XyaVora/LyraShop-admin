@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 
 export default function ConfirmModal({
   open,
@@ -10,17 +10,26 @@ export default function ConfirmModal({
   onConfirm,
   onCancel
 }) {
+  const titleId = useId();
+  const messageId = useId();
+  const cancelButtonRef = useRef(null);
+
   useEffect(() => {
     if (!open) {
       return undefined;
     }
+    const previousFocus = document.activeElement;
+    cancelButtonRef.current?.focus();
     function onKey(event) {
       if (event.key === "Escape") {
         onCancel();
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      previousFocus?.focus?.();
+    };
   }, [open, onCancel]);
 
   if (!open) {
@@ -33,14 +42,15 @@ export default function ConfirmModal({
         className="confirm-dialog card"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirm-title"
+        aria-labelledby={titleId}
+        aria-describedby={messageId}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="card-body">
-          <h2 id="confirm-title" className="h6">{title}</h2>
-          <p className="text-secondary small mb-4">{message}</p>
+          <h2 id={titleId} className="h6">{title}</h2>
+          <p id={messageId} className="text-secondary small mb-4">{message}</p>
           <div className="d-flex justify-content-end gap-2">
-            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>
+            <button ref={cancelButtonRef} type="button" className="btn btn-outline-secondary btn-sm" onClick={onCancel}>
               {cancelLabel}
             </button>
             <button
